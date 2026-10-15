@@ -1,0 +1,38 @@
+# The epic's declaration. metadata.name equals the directory name; metadata.key
+# is the task-key prefix this epic reserves (AC → AC-1, AC-2, …). Owner, target
+# date and health are the platform's — never written here.
+apiVersion: orun.io/v1
+kind: Epic
+metadata:
+  name: ai-chatbot
+  key: AC
+spec:
+  title: "Vercel's Next.js AI Chatbot on Cloudflare Workers with Supabase Postgres, Hyperdrive and R2"
+  summary: "The vercel/ai-chatbot template — AI SDK 7 streaming chat with artifacts and tools, next-auth v5 with a guest flow, Drizzle over Postgres, image attachments — runs on Cloudflare Workers + Static Assets through @opennextjs/cloudflare. Its Postgres is a Supabase project reached through Hyperdrive (the Lumen baseline's shape: supabase and cloudflare-hyperdrive Terraform roots, the schema applied by db-migrate from packages/db), its attachments go to an R2 bucket the Worker serves back, and its model calls keep the Vercel AI Gateway. Everything Vercel-only in the code — Blob, BotID, @vercel/functions, @vercel/otel, @vercel/analytics — is replaced by the Cloudflare equivalent or a no-op, each recorded as a departure; the chat, auth, artifact and data code is the template's."
+  state: backlog
+  milestones:
+    - name: "AC0 — the spec"
+      exitCriteria:
+        - "the doc set and the task contracts are on main"
+      tasks: [AC-1]
+    - name: "AC1 — the chatbot on Workers"
+      exitCriteria:
+        - "apps/web is the upstream template, built by `next build` + `opennextjs-cloudflare build`, with the Postgres client built per call from the HYPERDRIVE binding and attachments on the BLOB R2 binding"
+        - "the wrangler config renders per environment from the hyperdrive and r2 roots' wiring documents (fixture in verify, live in deploy)"
+        - "`pnpm typecheck`, `pnpm lint` (the template's own biome/ultracite), `pnpm test` and `pnpm build` are green on main (Checks)"
+        - "`wrangler dev` boots the Worker: /ping answers pong, static assets serve, the auth and API routes answer with their own errors when no database is reachable"
+      tasks: [AC-2]
+    - name: "AC2 — the schema through db-migrate"
+      exitCriteria:
+        - "packages/db (@saas/db) carries the template's schema verbatim as a manifest-listed migration; tests/db verifies the checksums and the offline plan"
+        - "infra/db-migrate applies it to each environment's Supabase project after the project exists"
+      tasks: [AC-3]
+    - name: "AC3 — Supabase, Hyperdrive and R2 from Terraform"
+      exitCriteria:
+        - "infra/terraform/{supabase,cloudflare-hyperdrive,cloudflare-r2} validate and publish the secrets and wiring documents the app and db-migrate components name"
+      tasks: [AC-4]
+    - name: "AC4 — ready to instantiate"
+      exitCriteria:
+        - "the README says how to run it locally with a Postgres, test, preview and deploy it through Orun, which Worker secrets to set and how attachments and the model gateway are configured"
+        - "the as-built status records every departure from the upstream template"
+      tasks: [AC-5]

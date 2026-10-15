@@ -1,0 +1,15 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: The template's schema ships in packages/db as a manifest-listed migration and is applied per environment by the db-migrate component
+  affects:
+    - packages/db
+    - tests/db
+    - infra/db-migrate
+    - pnpm-lock.yaml
+  doneWhen:
+    - pnpm --filter @saas/db run manifest:check passes
+    - the offline plan lists 000_control_baseline and 010_initial as pending
+    - tests/db is green in Checks
+  gates:
+    - checks
