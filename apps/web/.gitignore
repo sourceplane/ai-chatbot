@@ -26,6 +26,6 @@ yarn-error.log*
 next-env.d.ts
 tsconfig.tsbuildinfo
 
-# Workers build output and local wrangler state (the rendered wrangler.jsonc and .dev.vars are ignored from the repo root)
+# Workers build output and local wrangler state (.dev.vars is ignored from the repo root; wrangler.jsonc is committed)
 .open-next/
 .wrangler/

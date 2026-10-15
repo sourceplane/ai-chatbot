@@ -39,56 +39,70 @@ export const requestSuggestions = ({
         "userId" | "createdAt" | "documentCreatedAt"
       >[] = [];
 
-      const { partialOutputStream } = streamText({
-        instructions:
-          "You are a writing assistant. Given a piece of writing, offer up to 5 suggestions to improve it. Each suggestion must contain full sentences, not just individual words. Describe what changed and why.",
-        model: getLanguageModel(modelId),
-        output: Output.array({
-          element: z.object({
-            description: z
-              .string()
-              .describe("The description of the suggestion"),
-            originalSentence: z.string().describe("The original sentence"),
-            suggestedSentence: z.string().describe("The suggested sentence"),
+      // Structured output (a JSON schema the model must follow) is the one
+      // thing this tool asks of a model beyond text and tool calls, and not
+      // every model honours it. A model that cannot is told so — the chat
+      // goes on and says so — rather than failing the whole response.
+      try {
+        const { partialOutputStream } = streamText({
+          instructions:
+            "You are a writing assistant. Given a piece of writing, offer up to 5 suggestions to improve it. Each suggestion must contain full sentences, not just individual words. Describe what changed and why.",
+          model: getLanguageModel(modelId),
+          output: Output.array({
+            element: z.object({
+              description: z
+                .string()
+                .describe("The description of the suggestion"),
+              originalSentence: z.string().describe("The original sentence"),
+              suggestedSentence: z.string().describe("The suggested sentence"),
+            }),
           }),
-        }),
-        prompt: document.content,
-      });
+          prompt: document.content,
+        });
 
-      let processedCount = 0;
-      for await (const partialOutput of partialOutputStream) {
-        if (!partialOutput) {
-          continue;
-        }
-
-        for (let i = processedCount; i < partialOutput.length; i += 1) {
-          const element = partialOutput[i];
-          if (
-            !element?.originalSentence ||
-            !element?.suggestedSentence ||
-            !element?.description
-          ) {
+        let processedCount = 0;
+        for await (const partialOutput of partialOutputStream) {
+          if (!partialOutput) {
             continue;
           }
 
-          const suggestion = {
-            description: element.description,
-            documentId,
-            id: generateUUID(),
-            isResolved: false,
-            originalText: element.originalSentence,
-            suggestedText: element.suggestedSentence,
-          };
+          for (let i = processedCount; i < partialOutput.length; i += 1) {
+            const element = partialOutput[i];
+            if (
+              !element?.originalSentence ||
+              !element?.suggestedSentence ||
+              !element?.description
+            ) {
+              continue;
+            }
 
-          dataStream.write({
-            data: suggestion as Suggestion,
-            transient: true,
-            type: "data-suggestion",
-          });
+            const suggestion = {
+              description: element.description,
+              documentId,
+              id: generateUUID(),
+              isResolved: false,
+              originalText: element.originalSentence,
+              suggestedText: element.suggestedSentence,
+            };
 
-          suggestions.push(suggestion);
-          processedCount += 1;
+            dataStream.write({
+              data: suggestion as Suggestion,
+              transient: true,
+              type: "data-suggestion",
+            });
+
+            suggestions.push(suggestion);
+            processedCount += 1;
+          }
         }
+      } catch (error) {
+        return {
+          error: `Could not generate suggestions with this model: ${
+            error instanceof Error
+              ? error.message.slice(0, 200)
+              : "unknown error"
+          }. Try again, or pick another model.`,
+        };
       }
 
       if (session.user?.id) {

@@ -39,9 +39,9 @@ import {
 } from "@/components/ai-elements/model-selector";
 import {
   type ChatModel,
-  chatModels,
   DEFAULT_CHAT_MODEL,
   type ModelCapabilities,
+  workersAiModels,
 } from "@/lib/ai/models";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -696,7 +696,8 @@ function ModelSelectorOption({
   selectedModelId: string;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) {
-  const [logoProvider] = model.id.split("/");
+  // A Workers AI id is `@cf/<vendor>/<model>`; the logo is the vendor's.
+  const logoProvider = model.provider;
   const maybeWithTooltip = (icon: ReactNode, label: string) => {
     if (!curated) {
       return icon;
@@ -799,14 +800,18 @@ function PureModelSelectorCompact({
 
   const capabilities: Record<string, ModelCapabilities> | undefined =
     modelsData?.capabilities ?? modelsData;
+  // What this deployment can run (app/(chat)/api/models): Workers AI's models
+  // always, the AI Gateway's only when its key is set. Until the answer
+  // arrives, the Workers AI models, which every deployment has.
+  const availableModels: ChatModel[] = modelsData?.available ?? workersAiModels;
   const dynamicModels: ChatModel[] | undefined = modelsData?.models;
-  const activeModels = dynamicModels ?? chatModels;
+  const activeModels = availableModels;
 
   const selectedModel =
     activeModels.find((m: ChatModel) => m.id === selectedModelId) ??
     activeModels.find((m: ChatModel) => m.id === DEFAULT_CHAT_MODEL) ??
     activeModels[0];
-  const [provider] = selectedModel.id.split("/");
+  const { provider } = selectedModel;
 
   return (
     <ModelSelector onOpenChange={setOpen} open={open}>
@@ -824,13 +829,13 @@ function PureModelSelectorCompact({
         <ModelSelectorInput placeholder="Search models..." />
         <ModelSelectorList>
           {(() => {
-            const curatedIds = new Set(chatModels.map((m) => m.id));
+            const curatedIds = new Set(availableModels.map((m) => m.id));
             const allModels = dynamicModels
               ? [
-                  ...chatModels,
+                  ...availableModels,
                   ...dynamicModels.filter((m) => !curatedIds.has(m.id)),
                 ]
-              : chatModels;
+              : availableModels;
 
             const grouped: Record<
               string,

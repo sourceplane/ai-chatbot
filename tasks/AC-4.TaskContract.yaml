@@ -1,5 +1,8 @@
 apiVersion: orun.io/v1
 kind: TaskContract
+metadata:
+  name: AC-4
+  title: "Supabase, Hyperdrive and R2 from Terraform"
 spec:
   goal: The Supabase project, the Hyperdrive config over its Postgres and the attachments R2 bucket are provisioned per environment by Terraform through Orun, publishing the secrets and wiring documents the app and db-migrate components name
   affects:

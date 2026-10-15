@@ -4,7 +4,6 @@ import { generateText, type UIMessage } from "ai";
 import { cookies } from "next/headers";
 import { auth } from "@/app/(auth)/auth";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
-import { titleModel } from "@/lib/ai/models";
 import { titlePrompt } from "@/lib/ai/prompts";
 import { getTitleModel } from "@/lib/ai/providers";
 import {
@@ -29,8 +28,9 @@ export async function generateTitleFromUserMessage({
     instructions: titlePrompt,
     model: getTitleModel(),
     prompt: getTextFromMessage(message),
+    // A title needs no thinking: the Workers AI title model's reasoning off.
     providerOptions: {
-      gateway: { order: titleModel.gatewayOrder },
+      "workers-ai": { chat_template_kwargs: { enable_thinking: false } },
     },
   });
   return text

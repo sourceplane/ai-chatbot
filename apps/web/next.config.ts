@@ -1,6 +1,7 @@
 import path from "node:path";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
 const basePath = process.env.IS_DEMO === "1" ? "/demo" : "";
 
@@ -59,9 +60,16 @@ const nextConfig: NextConfig = {
 };
 
 // `next dev` gets the Worker's bindings — HYPERDRIVE (pointed at the local
-// Postgres by wrangler.jsonc's localConnectionString) and the BLOB bucket (a
-// local R2 emulation) — through getCloudflareContext(); a no-op at build time.
-initOpenNextCloudflareForDev();
-
-// Upstream wrapped this in `withBotId` (Vercel BotID); see lib/bot.ts.
-export default nextConfig;
+// Postgres by wrangler.jsonc's localConnectionString), the BLOB bucket (a
+// local R2 emulation) and AI (Workers AI, which has no local mode, so wrangler
+// reaches it remotely: `wrangler login` first) — through
+// getCloudflareContext(). In the dev server ONLY: the AI binding makes
+// wrangler open a remote session, and a build must need no Cloudflare
+// credential (Checks has none; a deploy lane's token is for the deploy).
+// Upstream wrapped the config in `withBotId` (Vercel BotID); see lib/bot.ts.
+export default function config(phase: string): NextConfig {
+  if (phase === PHASE_DEVELOPMENT_SERVER) {
+    initOpenNextCloudflareForDev();
+  }
+  return nextConfig;
+}

@@ -18,7 +18,8 @@ terraform {
 }
 
 # Authenticates via the CLOUDFLARE_API_TOKEN env var (provider-native): the
-# token is an orun-managed secret resolved into the job env at run time.
+# token is an orun-managed secret resolved into the job env at run time —
+# CLOUDFLARE_R2_TOKEN, minted from the r2-data template (component.yaml).
 provider "cloudflare" {}
 
 variable "cloudflare_account_id" {

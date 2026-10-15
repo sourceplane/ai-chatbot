@@ -62,6 +62,40 @@ the Worker secrets, attachments on R2, the model gateway),
 - the README quick start works from a fresh clone
 - the status file lists every PR and departure
 
+## AC5 — a baseline 🔄
+
+The repository becomes an Orun baseline on the Lumen conventions, built the
+way cirrus-baseline v22 builds a product: in ONE landing. `blueprint.yaml`
+(the console card) and `repo-blueprint.yaml` (the build: `01-product` places
+everything and lands one PR, `02-docs` is hook-only), `.baseline/` (identity,
+task contracts, the product's README), the rebrand engine with the
+`lib/site.ts` name seam, the bootstrap helpers, the deployment-record hook,
+`ai/context/`, the `baseline.yml`/`tag.yml` workflows and `testing/`.
+
+What a fresh, unattended build forces on the app:
+- **Workers AI is the default model provider**, through an `AI` binding in
+  the committed wrangler config (`workers-ai-provider` 4.0.0, which speaks AI
+  SDK 7): the chat (Kimi K2.6), the titles and the artifact tools (GLM 4.7
+  Flash for titles). The AI Gateway's models are offered only with
+  `AI_GATEWAY_API_KEY`; the picker shows exactly what can answer.
+- **The session key** is `AUTH_SECRET` or, unset, one the database generated
+  (`020_app_secrets`, in `app_private`, which the Data API does not expose);
+  the proxy and the guest route read it too.
+- **Row-level security** on every table in `public` (`030`), no policy.
+- `apps/web/wrangler.jsonc` committed as the fixture render; `/api/health`;
+  the R2 root on its own `r2-data` key; infra-before-app edges enforced on
+  main and advisory on pull requests.
+
+**Done when**
+- the contract, wiring, leak and placement tests pass, `orun new --status`
+  reads the blueprint at v2.58.11, v2.78.4 and 2.79.0, and `orun work check`
+  is clean
+- the e2e tier builds the product in the staged job tree, migrates a local
+  Postgres with the product's own runner, serves it under `wrangler dev` and
+  signs a guest in, streams a chat answer through the (stand-in) AI binding,
+  persists and lists it, round-trips an attachment through local R2,
+  registers and signs a user in — and the Data API's roles read none of it
+
 ## Sequencing note
 
 AC1 is verified without a database: the Worker boots and every route

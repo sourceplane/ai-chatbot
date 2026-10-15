@@ -32,6 +32,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { SITE_NAME } from "@/lib/site";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -91,7 +92,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <SidebarMenuButton
                   asChild
                   className="size-8 !px-0 items-center justify-center group-data-[collapsible=icon]:group-hover/logo:opacity-0"
-                  tooltip="Chatbot"
+                  tooltip={SITE_NAME}
                 >
                   <Link href="/" onClick={closeMobile}>
                     <MessageSquareIcon className="size-4 text-sidebar-foreground/50" />

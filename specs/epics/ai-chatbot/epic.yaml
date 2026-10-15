@@ -8,8 +8,8 @@ metadata:
   key: AC
 spec:
   title: "Vercel's Next.js AI Chatbot on Cloudflare Workers with Supabase Postgres, Hyperdrive and R2"
-  summary: "The vercel/ai-chatbot template — AI SDK 7 streaming chat with artifacts and tools, next-auth v5 with a guest flow, Drizzle over Postgres, image attachments — runs on Cloudflare Workers + Static Assets through @opennextjs/cloudflare. Its Postgres is a Supabase project reached through Hyperdrive (the Lumen baseline's shape: supabase and cloudflare-hyperdrive Terraform roots, the schema applied by db-migrate from packages/db), its attachments go to an R2 bucket the Worker serves back, and its model calls keep the Vercel AI Gateway. Everything Vercel-only in the code — Blob, BotID, @vercel/functions, @vercel/otel, @vercel/analytics — is replaced by the Cloudflare equivalent or a no-op, each recorded as a departure; the chat, auth, artifact and data code is the template's."
-  state: completed
+  summary: "The vercel/ai-chatbot template — AI SDK 7 streaming chat with artifacts and tools, next-auth v5 with a guest flow, Drizzle over Postgres, image attachments — runs on Cloudflare Workers + Static Assets through @opennextjs/cloudflare. Its Postgres is a Supabase project reached through Hyperdrive (the Lumen baseline's shape: supabase and cloudflare-hyperdrive Terraform roots, the schema applied by db-migrate from packages/db), its attachments go to an R2 bucket the Worker serves back, and its model calls keep the Vercel AI Gateway (until AC5, which makes Workers AI the default and the gateway optional). Everything Vercel-only in the code — Blob, BotID, @vercel/functions, @vercel/otel, @vercel/analytics — is replaced by the Cloudflare equivalent or a no-op, each recorded as a departure; the chat, auth, artifact and data code is the template's."
+  state: started
   milestones:
     - name: "AC0 — the spec"
       exitCriteria:
@@ -36,3 +36,12 @@ spec:
         - "the README says how to run it locally with a Postgres, test, preview and deploy it through Orun, which Worker secrets to set and how attachments and the model gateway are configured"
         - "the as-built status records every departure from the upstream template"
       tasks: [AC-5]
+    - name: "AC5 — a baseline"
+      exitCriteria:
+        - "blueprint.yaml (the console card, requires [github, cloudflare, supabase], six brokered keys — an r2-data key for the R2 root among them) and repo-blueprint.yaml (the build) take a new product from nothing to live on stage and prod in ONE landing, then record it (01-product, 02-docs)"
+        - "the product's own push-to-main plan converges supabase → cloudflare-hyperdrive → db-migrate → web and cloudflare-r2 → web per environment, every edge enforced on main and advisory on a pull request"
+        - "Workers AI through an AI binding is the default model provider for the chat, the titles and the artifact tools; the AI Gateway's models are offered only with its key; a fresh product chats with no model key"
+        - "a fresh product signs a guest in and registers a user with no AUTH_SECRET: the session key is one the database generated, kept in a schema the Data API does not expose"
+        - "every table in public has row-level security and no policy: Supabase's Data API (anon, authenticated) reads and writes nothing, the app, as the tables' owner, everything"
+        - "Baseline CI is green: contract tests, the blueprint read by the pinned orun, the leak gate, the offline bootstrap and the product's plans, and the end-to-end tier (a stand-in AI binding — Workers AI is not called offline)"
+      tasks: [AC-6]
