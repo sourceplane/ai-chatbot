@@ -1,0 +1,84 @@
+apiVersion: sourceplane.io/v1
+kind: Component
+metadata:
+  name: web
+  description: Vercel's Next.js AI Chatbot (Next.js on Cloudflare Workers + Static Assets via @opennextjs/cloudflare, per environment)
+spec:
+  type: cloudflare-workers-assets-turbo
+  lifecycle: production
+  owner: platform
+  domain: web
+  path: apps/web
+  # Its own lane per environment: the Next.js build is the longest job in the
+  # plan, and a shared lane would wait on it.
+  lane: isolated
+  # The Hyperdrive config and the R2 bucket must exist before this deploys
+  # (their ids are rendered into the Worker's HYPERDRIVE and BLOB bindings),
+  # and the schema must be applied before the Worker takes traffic
+  # (db-migrate, which itself waits on the Supabase project).
+  dependsOn:
+    - component: cloudflare-hyperdrive
+    - component: cloudflare-r2
+    - component: db-migrate
+  secretEnv:
+    # The wiring documents the wrangler template is rendered from per
+    # environment. AUTH_SECRET and AI_GATEWAY_API_KEY are Worker secrets set
+    # once per environment (README → Deploying); the lane does not set them.
+    WIRING_CLOUDFLARE_HYPERDRIVE_STAGE: "secret://ai-chatbot/ai-chatbot/stage/WIRING_CLOUDFLARE_HYPERDRIVE"
+    WIRING_CLOUDFLARE_HYPERDRIVE_PROD: "secret://ai-chatbot/ai-chatbot/prod/WIRING_CLOUDFLARE_HYPERDRIVE"
+    WIRING_CLOUDFLARE_R2_STAGE: "secret://ai-chatbot/ai-chatbot/stage/WIRING_CLOUDFLARE_R2"
+    WIRING_CLOUDFLARE_R2_PROD: "secret://ai-chatbot/ai-chatbot/prod/WIRING_CLOUDFLARE_R2"
+  subscribe:
+    environments:
+      - name: dev
+        profile: verify
+      - name: stage
+        profile: verify
+        profileRules:
+          - profile: deploy
+            when:
+              triggerRef: github-push-main
+      - name: prod
+        profile: verify
+        profileRules:
+          - profile: deploy
+            when:
+              triggerRef: github-push-main
+  parameters:
+    nodeVersion: "22"
+    pnpmVersion: "10.12.1"
+
+    workspaceDir: ../..
+    appDir: .
+
+    turboFilter: "@app/web"
+    wranglerConfig: wrangler.jsonc
+
+    # @opennextjs/cloudflare emits a Worker entrypoint plus a static-assets
+    # directory bound via ASSETS — both deploy in one `wrangler deploy`.
+    workerEntrypoint: .open-next/worker.js
+    assetsDir: .open-next/assets
+
+    # Per-env worker name: ai-chatbot-web-{dev,stage,prod}.
+    workerName: ai-chatbot-web
+    environmentAwareWorkerName: true
+
+    # The account's workers.dev subdomain; exported to the smoke step as
+    # ${WORKERS_DEV_SUBDOMAIN} and used to build ${DEPLOYED_URL}.
+    workersDevSubdomain: your-workers-subdomain
+
+    installCommand: pnpm install --frozen-lockfile
+    # Render this environment's wrangler config from the wiring documents,
+    # then build (the verify lane already rendered from the fixture through
+    # `wire:fixture`; a deploy lane re-renders with the real values).
+    buildCommand: node ../../tooling/wire/live.mjs --template wrangler.template.jsonc --out wrangler.jsonc --components cloudflare-hyperdrive,cloudflare-r2 --env "${ORUN_ENVIRONMENT}" && pnpm exec turbo run build --filter=@app/web
+
+    # Smoke: the proxy's health route answers before auth or the database are
+    # involved (`/ping` → "pong", proxy.ts), so a booted Worker passes and a
+    # broken one fails regardless of the model key.
+    smokeCommand: "curl -sf \"${DEPLOYED_URL}/ping\" | grep -q pong"
+  labels:
+    team: platform
+    layer: delivery
+    surface: web
+    runtime: cloudflare
