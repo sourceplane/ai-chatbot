@@ -5,79 +5,114 @@ SDK 7 streaming chat with tools and artifacts, Auth.js with a guest flow,
 Drizzle over Postgres, image attachments — running on **Cloudflare Workers +
 Static Assets** through
 [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare), with its
-Postgres a **Supabase** project reached through **Hyperdrive**, its
-attachments in an **R2** bucket, and the project, the Hyperdrive config, the
-bucket and the schema all provisioned by Terraform and Orun's db-migrate
-through [Orun](https://github.com/sourceplane/orun), the way the
-[Lumen baseline](https://github.com/sourceplane/lumen) does it.
+models on **Workers AI** through the Worker's own binding, its Postgres a
+**Supabase** project reached through **Hyperdrive**, its attachments in an
+**R2** bucket, and the project, the Hyperdrive config, the bucket and the
+schema all provisioned by Terraform and Orun's `db-migrate` through
+[Orun](https://github.com/sourceplane/orun), the way the
+[Lumen baseline](https://github.com/sourceplane/lumen) does it — and packaged
+as an **Orun baseline**: one command takes a new chatbot from nothing to live
+on stage and prod, in its own repository, under its own name, in ONE
+landing.
 
-The template's code is the code. What the port changes is where the
-Postgres client comes from (the `HYPERDRIVE` binding, one client per call),
-where attachments go (the `BLOB` R2 binding, served back at
-`/api/files/<key>`), and the Vercel-only modules — Blob, BotID,
-`@vercel/functions`, `@vercel/otel`, `@vercel/analytics` — each replaced by
-its Cloudflare counterpart or a no-op. The AI Gateway stays. See
+The template's code is the code. What the port changes is what the Workers
+runtime and a fresh, unattended deployment force: the Postgres client comes
+from the `HYPERDRIVE` binding, one per call; attachments go to the `BLOB` R2
+binding and are served back at `/api/files/<key>`; the Vercel-only modules —
+Blob, BotID, `@vercel/functions`, `@vercel/otel`, `@vercel/analytics` — are
+each replaced by their Cloudflare counterpart or a no-op; the models default
+to Workers AI (so a fresh product chats with no model key, and the AI
+Gateway's models appear only once its key is set); and the session key
+defaults to one the database generates for itself (so no secret has to be
+set by hand). What the baseline adds is everything needed to make a copy of
+it somebody else's — built the way
+[cirrus-baseline](https://github.com/sourceplane/cirrus-baseline) builds a
+product, in one landing. See
 [`specs/epics/ai-chatbot`](specs/epics/ai-chatbot/README.md) for the design,
-the milestones and the as-built status with every departure.
+the milestones and the as-built status, including every departure.
 
-## What is here
+## Instantiating a product
+
+```bash
+git clone --depth 1 --branch <baseline-tag> https://github.com/sourceplane/ai-chatbot
+cd ai-chatbot
+orun new --blueprint repo-blueprint.yaml --out ~/products/acme-chat --run-hooks --resume \
+  --set reponame=acme-chat --set productname="Acme Chat" --set productdomain=acme.dev \
+  --set githuborg=acme-inc --set subdomain=<workers-dev-subdomain>
+```
+
+Or, once the platform's registry lists it, from the Orun console (Baselines →
+`ai-chatbot` → Build). Two phases: **`01-product`** creates the repository,
+mints the six brokered credentials (Cloudflare and Supabase) and lands the
+whole product as one pull request, whose convergence on `main` provisions and
+deploys it per environment in a fixed order —
+
+```
+supabase ──▶ cloudflare-hyperdrive ──▶ db-migrate ──▶ web
+                                  cloudflare-r2 ──▶ web
+```
+
+— each edge `mode: enforced` on a push to main and advisory on a pull
+request; then **`02-docs`** records the live deployment from probed facts.
+**[BOOTSTRAP.md](BOOTSTRAP.md)** is the operator guide;
+[docs/phases/](docs/phases/README.md) has a page per phase.
+
+The new repository receives the **product only** — the app, the Terraform
+roots, the migrations, the tests, its CI, its tooling, a README of its own
+and its operating contract — renamed throughout to the product's name,
+repository, Worker, Supabase project, Hyperdrive config and bucket. None of
+this repository's machinery ships. **No AI vendor key is asked for**: the
+platform brokers none, and the chat runs on Workers AI; the AI Gateway's key
+is the owner's to add afterwards (the product's README, "Models"). The
+Supabase organisation the build uses needs room for **two projects**, stage
+and prod — the free plan's limit.
+
+| What makes it a baseline | Where |
+|---|---|
+| The console card (inputs, secrets, programme) | `blueprint.yaml` |
+| The build document (modules, phases, hooks) | `repo-blueprint.yaml` |
+| This tree's identity, the product's README and the bootstrap's task contracts | `.baseline/` |
+| The rename engine (product-name seam: `apps/web/lib/site.ts`) | `tooling/rebrand/rebrand.mjs` |
+| The bootstrap's helpers (deferrals, redeploy marker, work-tree strip) | `tooling/bootstrap/` |
+| The deployment-record renderer | `hooks/render-deployment-docs.sh` |
+| The product's context pack | `ai/context/` |
+| The baseline's tests: contract, wiring, leak, offline bootstrap and plans, end to end | `testing/`, `.github/workflows/baseline.yml` |
+| Cutting a `baseline-vN` tag | `.github/workflows/tag.yml` |
+
+## What is here (the product)
 
 | Surface | Where |
 |---|---|
+| The product's name | `apps/web/lib/site.ts` |
 | The chat, auth, artifacts, tools, components and hooks | `apps/web/app`, `apps/web/components`, `apps/web/artifacts`, `apps/web/lib`, `apps/web/hooks` |
+| The models (Workers AI by default; the AI Gateway when its key is set) | `apps/web/lib/ai/models.ts`, `apps/web/lib/ai/providers.ts` |
 | Postgres through Hyperdrive (`getDb()`), the schema for drizzle-kit | `apps/web/lib/db/queries.ts`, `apps/web/lib/db/schema.ts`, `apps/web/lib/db/migrations` |
+| The session key: AUTH_SECRET, or the one the database generated | `apps/web/lib/auth-secret.ts` |
 | Attachments on R2 (upload, serve) | `apps/web/app/(chat)/api/files/upload`, `apps/web/app/(chat)/api/files/[...key]` |
+| The database check the deploy smoke-tests | `apps/web/app/api/health/route.ts` |
 | The Vercel-only stand-ins | `apps/web/lib/geo.ts`, `apps/web/lib/bot.ts`, `apps/web/instrumentation.ts`, `apps/web/components/cloudflare-web-analytics.tsx` |
-| Workers build and deploy contract | `apps/web/next.config.ts`, `apps/web/open-next.config.ts`, `apps/web/wrangler.template.jsonc`, `apps/web/component.yaml` |
+| Workers build and deploy contract | `apps/web/next.config.ts`, `apps/web/open-next.config.ts`, `apps/web/wrangler.template.jsonc` → `wrangler.jsonc` (committed), `apps/web/component.yaml` |
 | The schema as migrations, and their runner | `packages/db` (`@saas/db`), `infra/db-migrate` |
 | The Supabase project, the Hyperdrive config, the R2 bucket (stage, prod) | `infra/terraform/supabase`, `infra/terraform/cloudflare-hyperdrive`, `infra/terraform/cloudflare-r2` |
-| Tests | `tests/web` (vitest: helpers, the shims, the attachment routes), `tests/db` (vitest: the manifest, the offline plan); upstream's Playwright suite stays in `apps/web/tests` behind `test:e2e` and is not run in CI |
+| Tests | `tests/web`, `tests/db` (vitest); upstream's Playwright suite stays in `apps/web/tests` behind `test:e2e` and is not run in CI |
 
 ## Getting started
 
 ```bash
 pnpm install
-pnpm run wire:fixture   # render apps/web/wrangler.jsonc from the offline fixture
+pnpm run wire:fixture   # re-render apps/web/wrangler.jsonc from its template (committed; this changes nothing)
 pnpm typecheck
 pnpm lint               # the template's own biome/ultracite in apps/web; eslint in the packages
 pnpm test               # tests/web, tests/db
 pnpm build              # next build + opennextjs-cloudflare build → apps/web/.open-next
 ```
 
-## Local development
-
-The app needs a Postgres, a model key and an auth secret.
-
-1. **Postgres.** Any local Postgres works; the wrangler config points the
-   `HYPERDRIVE` binding's `localConnectionString` at
-   `postgres://postgres:postgres@localhost:5432/postgres` (edit it if
-   yours differs). Apply the schema with drizzle-kit, which reads
-   `POSTGRES_URL` from `apps/web/.env.local`:
-
-   ```bash
-   cp apps/web/.env.example apps/web/.env.local   # set POSTGRES_URL, AUTH_SECRET, AI_GATEWAY_API_KEY
-   pnpm --filter @app/web db:migrate              # drizzle-kit migrate over apps/web/lib/db/migrations
-   ```
-
-   (In stage and prod the same SQL is applied by `infra/db-migrate` from
-   `packages/db`; drizzle-kit is local-only.)
-
-2. **Model key.** `AI_GATEWAY_API_KEY` from
-   [Vercel AI Gateway](https://vercel.com/ai-gateway) — the template's
-   provider, model list and capability lookups all speak the gateway's API.
-   To route through Cloudflare AI Gateway instead, point the `ai` gateway
-   provider's `baseURL` at it (`apps/web/lib/ai/providers.ts`).
-
-3. **Run it.**
-
-   ```bash
-   pnpm --filter @app/web dev        # http://localhost:3000 — Next's dev server with the Worker's bindings (HYPERDRIVE → your Postgres, BLOB → a local R2)
-   pnpm --filter @app/web preview    # wrangler dev over the built Worker; secrets from apps/web/.dev.vars (see .dev.vars.example)
-   ```
-
-   Opening `/` signs you in as a guest (a row in `User`); `/register`
-   creates an account. Attachments land in the local R2 emulation and are
-   served from `/api/files/<key>`.
+The build needs no database, no Cloudflare account and no model key.
+Running it locally — a Postgres, `pnpm --filter @app/web db:migrate`,
+`next dev` or `wrangler dev` (Workers AI is reached remotely, so
+`wrangler login` first) — is in the product's README
+(`.baseline/product/README.md`), which is what a product built from here
+carries.
 
 ## How it maps to Vercel
 
@@ -91,31 +126,17 @@ The app needs a Postgres, a model key and an auth secret.
 | BotID | Removed; `lib/bot.ts` never flags a request — use Cloudflare Bot Management or Turnstile at the edge |
 | `@vercel/otel` + `@ai-sdk/otel` | Workers observability (`observability.enabled` in wrangler); `instrumentation.ts` registers nothing |
 | `@vercel/analytics` | Cloudflare Web Analytics beacon (`NEXT_PUBLIC_CF_BEACON_TOKEN` at build time; unset renders nothing) |
-| Vercel AI Gateway (OIDC on Vercel) | The same gateway with `AI_GATEWAY_API_KEY` as a Worker secret |
-| Redis resumable streams + IP rate limit (`REDIS_URL`) | Off, as upstream is without `REDIS_URL`; per-user entitlements still apply |
-| Project env vars in the dashboard | `AUTH_SECRET`, `AI_GATEWAY_API_KEY` as Worker secrets per environment; the Hyperdrive id and bucket name as bindings rendered from the infra roots' wiring documents |
-| Deploy on push | Orun deploys `ai-chatbot-web-{stage,prod}` on merge to `main` (`apps/web/component.yaml`), after the three roots and db-migrate |
+| Vercel AI Gateway (OIDC on Vercel) for every model call | Workers AI through the `AI` binding by default (`workers-ai-provider`); the gateway's models only with `AI_GATEWAY_API_KEY` as a Worker secret |
+| `AUTH_SECRET` set by the owner | Optional: unset, the session key is the one the environment's database generated (`app_private.secrets`) |
+| Redis resumable streams + IP rate limit (`REDIS_URL`) | Off without `REDIS_URL`, as upstream; per-user entitlements still apply |
+| A database created by hand | `infra/terraform/supabase` + `infra/terraform/cloudflare-hyperdrive` + `infra/terraform/cloudflare-r2`, ids and credentials as orun secrets |
+| "Deploy with Vercel" (clone the template) | `orun new --blueprint repo-blueprint.yaml` — a new repository, branded, provisioned, deployed |
 
-## Deploying
+## CI
 
-`.github/workflows/checks.yml` runs install, wire, typecheck, lint, test
-and build on every push and pull request. `ci.yml` is the Orun pipeline:
-set `execution.state.workspace` in `intent.yaml` to this product's workspace
-(`orun cloud link`), connect Cloudflare **and Supabase** to that workspace,
-and set the `ORUN_CI` repository variable to `true`. A merge to `main`
-then applies the Supabase project, the Hyperdrive config and the R2 bucket,
-applies the schema with db-migrate, builds the app with that environment's
-Hyperdrive id and bucket name rendered into `wrangler.jsonc`, and deploys
-the Worker to `stage`, then `prod`.
-
-Two Worker secrets are yours to set once per environment, before the first
-deploy takes traffic:
-
-```bash
-wrangler secret put AUTH_SECRET          --name ai-chatbot-web-stage   # openssl rand -base64 32
-wrangler secret put AI_GATEWAY_API_KEY   --name ai-chatbot-web-stage
-```
-
-(and again for `ai-chatbot-web-prod`). Without `AUTH_SECRET` every
-signed-in request fails at the proxy; without the gateway key the chat
-route answers with the gateway's error.
+| Workflow | What it runs | Ships to a product |
+|---|---|---|
+| `checks.yml` | install, wire fixture (which must change nothing), typecheck, lint, test, build — every PR (not pushes: on main, `ci.yml` must be the only run a commit has, because the bootstrap's convergence watch takes the newest one) | yes |
+| `ci.yml` | the Orun pipeline: `orun plan --changed`, then one job per lane; applies, migrates and deploys stage → prod on merge. It plans nothing while `intent.yaml` names the placeholder workspace `ws_CHANGE_ME`, as this repository does | yes |
+| `baseline.yml` | the baseline's own tiers: contract tests; the blueprint read by the pinned orun, the leak gate, the offline bootstrap and the product's own plans; the product built, migrated into a local Postgres, dry-deployed, served, and chatted with through a stand-in AI binding | no |
+| `tag.yml` | cuts a `baseline-vN` tag (manual) | no |

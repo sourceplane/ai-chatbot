@@ -11,6 +11,10 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
+// Every table is created with row-level security on and no policy
+// (`.enableRLS()`; migration 030_row_level_security): Supabase's Data API
+// serves `public` to anyone with the project's anon key, and gets nothing
+// here. The app connects as the tables' owner, which RLS does not apply to.
 export const user = pgTable("User", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   email: varchar("email", { length: 64 }).notNull(),
@@ -21,7 +25,7 @@ export const user = pgTable("User", {
   name: text("name"),
   password: varchar("password", { length: 64 }),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export type User = InferSelectModel<typeof user>;
 
@@ -35,7 +39,7 @@ export const chat = pgTable("Chat", {
   visibility: varchar("visibility", { enum: ["public", "private"] })
     .notNull()
     .default("private"),
-});
+}).enableRLS();
 
 export type Chat = InferSelectModel<typeof chat>;
 
@@ -48,7 +52,7 @@ export const message = pgTable("Message_v2", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   parts: json("parts").notNull(),
   role: varchar("role").notNull(),
-});
+}).enableRLS();
 
 export type DBMessage = InferSelectModel<typeof message>;
 
@@ -66,7 +70,7 @@ export const vote = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.chatId, table.messageId] }),
   })
-);
+).enableRLS();
 
 export type Vote = InferSelectModel<typeof vote>;
 
@@ -87,7 +91,7 @@ export const document = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.id, table.createdAt] }),
   })
-);
+).enableRLS();
 
 export type Document = InferSelectModel<typeof document>;
 
@@ -113,7 +117,7 @@ export const suggestion = pgTable(
     }),
     pk: primaryKey({ columns: [table.id] }),
   })
-);
+).enableRLS();
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
 
@@ -131,6 +135,6 @@ export const stream = pgTable(
     }),
     pk: primaryKey({ columns: [table.id] }),
   })
-);
+).enableRLS();
 
 export type Stream = InferSelectModel<typeof stream>;

@@ -6,7 +6,17 @@
 // render.mjs. Fails loudly on any unresolved token.
 //
 //   node live.mjs --template wrangler.template.jsonc --out wrangler.jsonc \
-//     --components cloudflare-kv,cloudflare-r2 --envs stage,prod
+//     --components cloudflare-kv,cloudflare-r2 --env stage \
+//     [--fixture wiring.fixture.json --fixture-envs dev]
+//
+// A VERIFY-ONLY ENVIRONMENT HAS NO WIRING DOCUMENT. `dev` deploys nothing and
+// no infra component applies there, so nothing ever publishes
+// WIRING_<COMPONENT>_DEV; its lane still builds and dry-deploys the Worker.
+// `--fixture-envs` names those environments, and for them — only them — a
+// missing document renders from the committed fixture instead. Every other
+// environment needs the real document: a deploy job resolves it before its
+// first step (the component's secretEnv), so a missing one here is a real
+// fault, never a reason to deploy a placeholder id.
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -23,19 +33,27 @@ const out = arg("out");
 const components = (arg("components") ?? "").split(",").filter(Boolean);
 const env = arg("env");
 const envs = (arg("envs") ?? env ?? "stage,prod").split(",").filter(Boolean);
-if (!template || !out || components.length === 0) {
+const fixture = arg("fixture");
+const fixtureEnvs = new Set((arg("fixture-envs") ?? "").split(",").filter(Boolean));
+if (!template || !out || components.length === 0 || (fixtureEnvs.size > 0 && !fixture)) {
   console.error(
-    "usage: live.mjs --template <file> --out <file> --components a,b (--env stage | --envs stage,prod)",
+    "usage: live.mjs --template <file> --out <file> --components a,b (--env stage | --envs stage,prod) [--fixture <file> --fixture-envs dev]",
   );
   process.exit(2);
 }
 
+const fixtureMap = fixture ? JSON.parse(fs.readFileSync(fixture, "utf8")) : {};
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wiring-"));
 const missing = [];
+const fromFixture = [];
 for (const component of components) {
   for (const env of envs) {
     const key = `WIRING_${component.toUpperCase().replace(/-/g, "_")}_${env.toUpperCase()}`;
-    const value = process.env[key];
+    let value = process.env[key];
+    if (!value && fixtureEnvs.has(env) && fixtureMap[`${component}/${env}`]) {
+      value = JSON.stringify(fixtureMap[`${component}/${env}`]);
+      fromFixture.push(`${component}/${env}`);
+    }
     if (!value) {
       missing.push(key);
       continue;
@@ -46,7 +64,11 @@ for (const component of components) {
 if (missing.length > 0) {
   console.error("wire: missing wiring documents in the environment:");
   for (const m of missing) console.error(`  ${m}`);
+  fs.rmSync(dir, { recursive: true, force: true });
   process.exit(1);
+}
+for (const f of fromFixture) {
+  console.log(`wire: ${f} is verify-only — rendered from ${path.basename(fixture)}, not a published document`);
 }
 
 // A single-environment render (the workers-assets composition deploys one

@@ -1,5 +1,8 @@
 apiVersion: orun.io/v1
 kind: TaskContract
+metadata:
+  name: AC-2
+  title: "The chatbot on Workers"
 spec:
   goal: The upstream AI Chatbot runs on Cloudflare Workers + Static Assets with Postgres through the HYPERDRIVE binding, attachments on the BLOB R2 binding, a per-environment rendered wrangler config and green checks
   affects:

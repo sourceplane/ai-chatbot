@@ -1,0 +1,7 @@
+// The Workers AI stand-in's own config, run beside the product's Worker in
+// one `wrangler dev` session by testing/e2e.test.sh. Never deployed.
+{
+  "name": "fake-workers-ai",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01"
+}

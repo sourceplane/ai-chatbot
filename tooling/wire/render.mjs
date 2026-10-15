@@ -91,8 +91,18 @@ if (/@@wiring\([a-z0-9-]+\/[a-z0-9-]+:[a-zA-Z0-9_]+\)@@/.test(rendered)) {
   process.exit(1);
 }
 
+// The output says what it is. The template's own header comment (its leading
+// `//` lines) describes the template, so it is replaced by one that names the
+// source: a rendered config is never the file to edit.
+const body = rendered.replace(/^(?:\/\/[^\n]*\n)+/, "");
+const banner = [
+  `// GENERATED from ${path.basename(templatePath)} by tooling/wire — edit the`,
+  "// template, not this file. The committed copy is the fixture render",
+  "// (`pnpm run wire:fixture`); every Orun lane renders its own environment.",
+  "",
+].join("\n");
 fs.mkdirSync(path.dirname(path.resolve(outPath)), { recursive: true });
-fs.writeFileSync(outPath, rendered);
+fs.writeFileSync(outPath, banner + body);
 console.log(
   `wire: rendered ${path.basename(outPath)} from ${path.basename(templatePath)} (${sources.size} wiring source(s))`,
 );

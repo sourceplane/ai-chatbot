@@ -1,0 +1,41 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+metadata:
+  name: AC-6
+  title: "A baseline"
+spec:
+  goal: The repository is an Orun baseline on the Lumen conventions — a card and a build document that take a new chatbot from nothing to live on stage and prod in one landing (Supabase, Hyperdrive and R2, then the migrations, then the app), branded as its own, chatting on Workers AI with no model key and signing guests in with no owner-set secret, with gates that prove it offline
+  affects:
+    - blueprint.yaml
+    - repo-blueprint.yaml
+    - BOOTSTRAP.md
+    - README.md
+    - .baseline/**
+    - tooling/rebrand/**
+    - tooling/bootstrap/**
+    - tooling/wire/**
+    - hooks/**
+    - testing/**
+    - docs/phases/**
+    - ai/context/**
+    - .github/workflows/**
+    - .gitignore
+    - intent.yaml
+    - pnpm-workspace.yaml
+    - pnpm-lock.yaml
+    - apps/web/**
+    - packages/db/**
+    - infra/**
+    - tests/web/**
+    - tests/db/**
+    - specs/**
+    - tasks/**
+  doneWhen:
+    - orun (the bootstrap floor, the lane pin and 2.79.0) reads repo-blueprint.yaml, and the card agrees with it
+    - the product's own push-to-main plan orders supabase → cloudflare-hyperdrive → db-migrate → web and cloudflare-r2 → web, enforced, and a pull request's plan holds the same edges advisory
+    - the R2 root applies with its own r2-data key, not the deploy token
+    - a product built offline installs, migrates a local Postgres with its own runner, builds in the job tree orun stages, serves, signs a guest in, streams a chat answer through its AI binding (a stand-in offline), persists and lists it, round-trips an attachment through R2, and registers a user — with no model key and no AUTH_SECRET
+    - every table in public has row-level security; anon and authenticated read none of what the flow wrote
+    - the as-built status records the departures and what is not yet proven live
+  gates:
+    - checks

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { suggestions } from "@/lib/constants";
+import { SITE_NAME } from "@/lib/site";
 import { SparklesIcon } from "./icons";
 
 function PreviewSuggestionButton({
@@ -48,7 +49,7 @@ export function Preview() {
         <div className="flex size-5 items-center justify-center rounded bg-muted/60 ring-1 ring-border/50">
           <SparklesIcon size={10} />
         </div>
-        <span className="text-[13px] text-muted-foreground">Chatbot</span>
+        <span className="text-[13px] text-muted-foreground">{SITE_NAME}</span>
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-8 px-8">

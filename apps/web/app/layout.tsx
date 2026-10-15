@@ -3,14 +3,22 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SITE_NAME } from "@/lib/site";
 
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 
+// The Open Graph and Twitter images are absolute URLs, which Next resolves
+// against `metadataBase`. Upstream's was its own demo (chat.vercel.ai); here
+// it is the product's public origin, baked in at build: the environment's
+// SITE_URL when one is set (a custom domain), else its workers.dev URL
+// (component.yaml's buildCommand). A local build has neither.
 export const metadata: Metadata = {
   description: "Next.js chatbot template using the AI SDK.",
-  metadataBase: new URL("https://chat.vercel.ai"),
-  title: "Next.js Chatbot Template",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  ),
+  title: SITE_NAME,
 };
 
 export const viewport = {

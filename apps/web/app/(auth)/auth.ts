@@ -2,6 +2,7 @@ import { compare } from "bcrypt-ts";
 import NextAuth, { type DefaultSession } from "next-auth";
 import type { DefaultJWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
+import { authSecret } from "@/lib/auth-secret";
 import { DUMMY_PASSWORD } from "@/lib/constants";
 import { createGuestUser, getUser } from "@/lib/db/queries";
 import { authConfig } from "./auth.config";
@@ -30,12 +31,16 @@ declare module "next-auth/jwt" {
   }
 }
 
+// Initialised lazily — Auth.js resolves this config per request — because the
+// secret may be one the database holds (lib/auth-secret.ts): AUTH_SECRET when
+// it is set, otherwise the key migration 020_app_secrets generated, so a
+// fresh deployment signs guests in with no owner-supplied secret.
 export const {
   handlers: { GET, POST },
   auth,
   signIn,
   signOut,
-} = NextAuth({
+} = NextAuth(async () => ({
   ...authConfig,
   callbacks: {
     jwt({ token, user }) {
@@ -96,4 +101,5 @@ export const {
       id: "guest",
     }),
   ],
-});
+  secret: await authSecret(),
+}));

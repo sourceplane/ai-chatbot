@@ -12,14 +12,13 @@ import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
 import {
-  allowedModelIds,
   chatModels,
-  DEFAULT_CHAT_MODEL,
   getCapabilities,
   getModelAvailability,
+  isWorkersAiModel,
 } from "@/lib/ai/models";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
-import { getLanguageModel } from "@/lib/ai/providers";
+import { getLanguageModel, resolveModelId } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { editDocument } from "@/lib/ai/tools/edit-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
@@ -94,9 +93,9 @@ export async function POST(request: Request) {
       return new ChatbotError("unauthorized:chat").toResponse();
     }
 
-    const chatModel = allowedModelIds.has(selectedChatModel)
-      ? selectedChatModel
-      : DEFAULT_CHAT_MODEL;
+    // Only a model this deployment can run: a gateway model without the
+    // gateway's key falls back to the default Workers AI model.
+    const chatModel = resolveModelId(selectedChatModel);
 
     await checkIpRateLimit(ipAddress(request));
 
@@ -396,6 +395,12 @@ export async function POST(request: Request) {
           )
         ) {
           return "AI Gateway requires a valid credit card on file to service requests. Please visit https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card to add a card and unlock your free credits.";
+        }
+        // Workers AI's own error (a model it no longer serves, a quota, a
+        // binding that is not there) is shown as it is, in the chat, rather
+        // than as a bare "Oops".
+        if (isWorkersAiModel(chatModel) && error instanceof Error) {
+          return `Workers AI could not answer with ${modelConfig?.name ?? chatModel}: ${error.message.slice(0, 200)}`;
         }
         return "Oops, an error occurred!";
       },

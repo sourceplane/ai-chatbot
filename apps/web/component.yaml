@@ -12,18 +12,41 @@ spec:
   # Its own lane per environment: the Next.js build is the longest job in the
   # plan, and a shared lane would wait on it.
   lane: isolated
-  # The Hyperdrive config and the R2 bucket must exist before this deploys
-  # (their ids are rendered into the Worker's HYPERDRIVE and BLOB bindings),
-  # and the schema must be applied before the Worker takes traffic
-  # (db-migrate, which itself waits on the Supabase project).
+  # INFRA BEFORE APP, ENFORCED ON MAIN. A merge to main converges the whole
+  # product in one run: the Supabase project, then the Hyperdrive config over
+  # its database, then the migrations, then this Worker — with the R2 bucket
+  # applied beside them. Its deploy reads the Hyperdrive id and the bucket
+  # name (WIRING_CLOUDFLARE_HYPERDRIVE_<ENV>, WIRING_CLOUDFLARE_R2_<ENV>,
+  # rendered into the HYPERDRIVE and BLOB bindings) and needs the schema
+  # applied, and a job resolves its secrets when it STARTS — so it waits on
+  # all three, `mode: enforced`, and what the applies lease-published is
+  # there. A pull request deploys nothing, so nothing on one waits: every
+  # edge is advisory there.
   dependsOn:
     - component: cloudflare-hyperdrive
+      mode: enforced
+      modeRules:
+        - mode: advisory
+          when:
+            triggerRef: github-pull-request
     - component: cloudflare-r2
+      mode: enforced
+      modeRules:
+        - mode: advisory
+          when:
+            triggerRef: github-pull-request
     - component: db-migrate
+      mode: enforced
+      modeRules:
+        - mode: advisory
+          when:
+            triggerRef: github-pull-request
+  # The wiring documents the cloudflare-hyperdrive and cloudflare-r2 roots
+  # lease-publish, one per deployed environment; tooling/wire/live.mjs picks
+  # this job's. No model key and no session secret: the model is the AI
+  # binding, and the session key is one the database generated unless an
+  # owner sets AUTH_SECRET as a Worker secret (README).
   secretEnv:
-    # The wiring documents the wrangler template is rendered from per
-    # environment. AUTH_SECRET and AI_GATEWAY_API_KEY are Worker secrets set
-    # once per environment (README → Deploying); the lane does not set them.
     WIRING_CLOUDFLARE_HYPERDRIVE_STAGE: "secret://ai-chatbot/ai-chatbot/stage/WIRING_CLOUDFLARE_HYPERDRIVE"
     WIRING_CLOUDFLARE_HYPERDRIVE_PROD: "secret://ai-chatbot/ai-chatbot/prod/WIRING_CLOUDFLARE_HYPERDRIVE"
     WIRING_CLOUDFLARE_R2_STAGE: "secret://ai-chatbot/ai-chatbot/stage/WIRING_CLOUDFLARE_R2"
@@ -68,15 +91,27 @@ spec:
     workersDevSubdomain: your-workers-subdomain
 
     installCommand: pnpm install --frozen-lockfile
-    # Render this environment's wrangler config from the wiring documents,
-    # then build (the verify lane already rendered from the fixture through
-    # `wire:fixture`; a deploy lane re-renders with the real values).
-    buildCommand: node ../../tooling/wire/live.mjs --template wrangler.template.jsonc --out wrangler.jsonc --components cloudflare-hyperdrive,cloudflare-r2 --env "${ORUN_ENVIRONMENT}" && pnpm exec turbo run build --filter=@app/web
+    # wrangler.jsonc is COMMITTED — the fixture render, so the composition's
+    # structure check (`test -f wrangler.jsonc`, before the build, in a fresh
+    # checkout) passes. Every lane re-renders it here, in its own job tree:
+    # stage and prod from this environment's wiring documents (and refuse to
+    # build without them), so the Worker binds the real Hyperdrive config and
+    # bucket; dev, which no root applies to, from the fixture.
+    #
+    # The product's public origin (the Open Graph images are absolute links,
+    # app/layout.tsx's metadataBase): the environment's SITE_URL when
+    # intent.yaml sets one (a custom domain), else its workers.dev URL. The
+    # subdomain is written out rather than read from ${WORKERS_DEV_SUBDOMAIN}:
+    # the composition exports that to the smoke step only, so the build would
+    # see it empty. ${ORUN_ENVIRONMENT} the runner sets for every step.
+    buildCommand: node ../../tooling/wire/live.mjs --template wrangler.template.jsonc --out wrangler.jsonc --components cloudflare-hyperdrive,cloudflare-r2 --env "${ORUN_ENVIRONMENT}" --fixture wiring.fixture.json --fixture-envs dev && NEXT_PUBLIC_SITE_URL="${SITE_URL:-https://ai-chatbot-web-${ORUN_ENVIRONMENT}.your-workers-subdomain.workers.dev}" pnpm exec turbo run build --filter=@app/web
 
-    # Smoke: the proxy's health route answers before auth or the database are
-    # involved (`/ping` → "pong", proxy.ts), so a booted Worker passes and a
-    # broken one fails regardless of the model key.
-    smokeCommand: "curl -sf \"${DEPLOYED_URL}/ping\" | grep -q pong"
+    # Smoke: the proxy answers `/ping` before auth or the database are
+    # involved — the Worker booted — and /api/health answers ok: the database
+    # behind the HYPERDRIVE binding reachable and migrated, the session key
+    # among it. Each response is buffered before grep so an early match
+    # cannot SIGPIPE curl.
+    smokeCommand: "pong=$(curl -sf \"${DEPLOYED_URL}/ping\") && echo \"${pong}\" | grep -qx pong && health=$(curl -sf \"${DEPLOYED_URL}/api/health\") && echo \"${health}\" | grep -q '\"ok\":true'"
   labels:
     team: platform
     layer: delivery
