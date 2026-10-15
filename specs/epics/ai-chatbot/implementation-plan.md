@@ -3,7 +3,7 @@
 Milestones land in order; each task is one pull request on an
 `orun/AC-n-<slug>` branch with an `Orun-Task: AC-n` trailer.
 
-## AC0 — the spec
+## AC0 — the spec ✅
 
 This doc set, `epic.yaml` and the task contracts, merged to `main`.
 
@@ -11,7 +11,7 @@ This doc set, `epic.yaml` and the task contracts, merged to `main`.
 - the five documents and `epic.yaml` are on `main`
 - `tasks/AC-1..AC-5.TaskContract.yaml` exist
 
-## AC1 — the chatbot on Workers
+## AC1 — the chatbot on Workers ✅
 
 `apps/web` is the upstream template with the Workers build around it and
 the Vercel-only modules swapped: `getDb()` over the HYPERDRIVE binding, the
@@ -26,7 +26,7 @@ routes with a mocked session and a mocked R2 binding.
 - `wrangler dev` over the built Worker with a `.dev.vars` boots: `/ping` answers `pong`, static assets serve, a cookie-less `/` is sent to `/api/auth/guest`, `GET /api/files/<missing>` is 404, and the guest route fails with a database error (no Postgres locally) rather than a crash
 - the template's own linter (`ultracite check`) is what `pnpm lint` runs
 
-## AC2 — the schema through db-migrate
+## AC2 — the schema through db-migrate ✅
 
 `packages/db` (`@saas/db`) carries the control migration and
 `010_initial/up.sql`, the template's SQL verbatim; `tests/db` checks the
@@ -38,7 +38,7 @@ migrations per environment after the Supabase project exists.
 - `node packages/db/dist/runner/cli.js plan --env stage` lists both migrations as pending offline
 - `tests/db` is green
 
-## AC3 — Supabase, Hyperdrive and R2 from Terraform
+## AC3 — Supabase, Hyperdrive and R2 from Terraform ✅
 
 `infra/terraform/supabase` provisions a project per environment and
 publishes its secrets and wiring document; `cloudflare-hyperdrive` fronts
@@ -52,7 +52,7 @@ name those secrets; this is the half that makes the names true.
 - the fixture's wiring keys match the template's tokens (`wire:fixture` renders)
 - the component names in `dependsOn` and `secretEnv` match the roots' component names and `secretOutputs`
 
-## AC4 — ready to instantiate
+## AC4 — ready to instantiate ✅
 
 README (run locally with a Postgres, test, preview, deploy through Orun,
 the Worker secrets, attachments on R2, the model gateway),

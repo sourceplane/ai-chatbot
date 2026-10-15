@@ -9,7 +9,7 @@ metadata:
 spec:
   title: "Vercel's Next.js AI Chatbot on Cloudflare Workers with Supabase Postgres, Hyperdrive and R2"
   summary: "The vercel/ai-chatbot template — AI SDK 7 streaming chat with artifacts and tools, next-auth v5 with a guest flow, Drizzle over Postgres, image attachments — runs on Cloudflare Workers + Static Assets through @opennextjs/cloudflare. Its Postgres is a Supabase project reached through Hyperdrive (the Lumen baseline's shape: supabase and cloudflare-hyperdrive Terraform roots, the schema applied by db-migrate from packages/db), its attachments go to an R2 bucket the Worker serves back, and its model calls keep the Vercel AI Gateway. Everything Vercel-only in the code — Blob, BotID, @vercel/functions, @vercel/otel, @vercel/analytics — is replaced by the Cloudflare equivalent or a no-op, each recorded as a departure; the chat, auth, artifact and data code is the template's."
-  state: backlog
+  state: completed
   milestones:
     - name: "AC0 — the spec"
       exitCriteria:
