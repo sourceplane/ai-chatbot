@@ -1,0 +1,16 @@
+{
+  "cloudflare-hyperdrive/stage": {
+    "hyperdrive_id": "00000000000000000000000000000001",
+    "hyperdrive_name": "stg-ai-chatbot-stage"
+  },
+  "cloudflare-hyperdrive/prod": {
+    "hyperdrive_id": "00000000000000000000000000000001",
+    "hyperdrive_name": "prod-ai-chatbot-prod"
+  },
+  "cloudflare-r2/stage": {
+    "r2_bucket_name": "stg-ai-chatbot-stage"
+  },
+  "cloudflare-r2/prod": {
+    "r2_bucket_name": "prod-ai-chatbot-prod"
+  }
+}
