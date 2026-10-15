@@ -1,0 +1,17 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: The upstream AI Chatbot runs on Cloudflare Workers + Static Assets with Postgres through the HYPERDRIVE binding, attachments on the BLOB R2 binding, a per-environment rendered wrangler config and green checks
+  affects:
+    - apps/web
+    - tests/web
+    - tooling/wire
+    - pnpm-lock.yaml
+    - package.json
+    - turbo.json
+    - .gitignore
+  doneWhen:
+    - pnpm wire:fixture, typecheck, lint (ultracite), test and build are green in Checks
+    - wrangler dev boots the Worker; /ping answers pong, static assets serve, cookie-less routes are sent to the guest sign-in, GET /api/files/<missing> is 404
+  gates:
+    - checks

@@ -1,0 +1,15 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: A reader can run the chatbot locally with a Postgres, test, preview and deploy it through Orun from the README; the as-built status is complete
+  affects:
+    - README.md
+    - specs/epics/ai-chatbot/IMPLEMENTATION-STATUS.md
+    - specs/epics/ai-chatbot/README.md
+    - specs/epics/ai-chatbot/epic.yaml
+    - specs/epics/ai-chatbot/implementation-plan.md
+    - specs/epics/README.md
+  doneWhen:
+    - README quick start is verified from a fresh clone
+    - IMPLEMENTATION-STATUS lists every PR and departure
+  gates: []

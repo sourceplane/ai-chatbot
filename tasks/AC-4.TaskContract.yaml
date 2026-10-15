@@ -1,0 +1,13 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: The Supabase project, the Hyperdrive config over its Postgres and the attachments R2 bucket are provisioned per environment by Terraform through Orun, publishing the secrets and wiring documents the app and db-migrate components name
+  affects:
+    - infra/terraform/supabase
+    - infra/terraform/cloudflare-hyperdrive
+    - infra/terraform/cloudflare-r2
+    - intent.yaml
+  doneWhen:
+    - terraform validate passes on the three roots
+    - the app component's secretEnv and wiring tokens match the roots' secretOutputs and wiring documents
+  gates: []
