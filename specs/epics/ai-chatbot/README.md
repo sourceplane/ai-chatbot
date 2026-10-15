@@ -8,7 +8,7 @@ The upstream code stays the code: `app/(chat)/api/chat/route.ts` with `streamTex
 
 | Field | Value |
 |-------|-------|
-| Status | Draft |
+| Status | ✅ Shipped — AC0–AC4 landed (#1–#5); the Supabase, Hyperdrive and R2 applies, db-migrate and a live deploy gated on a linked workspace |
 | Cluster | **AC** (AC0–AC4) |
 | Owner(s) | `apps/web` (the app) · `tests/web` (vitest) · `packages/db` + `tests/db` (the schema) · `infra/terraform/{supabase,cloudflare-hyperdrive,cloudflare-r2}` + `infra/db-migrate` |
 | Builds on | `lumen` conventions — the `supabase`, `cloudflare-hyperdrive` and `db-migrate` components, `@saas/db`, the orun-secrets wiring, the per-request `postgres` client; `cirrus-baseline` for the R2 root and the repository shape |
@@ -16,7 +16,7 @@ The upstream code stays the code: `app/(chat)/api/chat/route.ts` with `streamTex
 | Changes | Adds the Workers build, the monorepo wrapper, tests, the migrations package, the infra roots and the deploy contract; in the template's code: the per-call Postgres client, the R2 attachment routes, and shims for the Vercel-only modules (`lib/bot.ts`, `lib/geo.ts`, an empty `instrumentation.ts`) |
 | Decisions locked | (1) OpenNext on Workers + Static Assets, `next` pinned to 16.3.8. (2) Postgres through Hyperdrive, one `postgres` client per `getDb()` call, never at module scope. (3) Attachments in R2 behind `/api/files/<key>`, public by unguessable URL exactly as Vercel Blob's `access: "public"` was. (4) The schema ships in `packages/db` and is applied by db-migrate; drizzle-kit stays for local development. (5) Static-assets incremental cache: the app has no `use cache` and nothing revalidates. (6) No Redis: resumable streams and the IP rate limit stay off, as upstream does without `REDIS_URL`. (7) `AUTH_SECRET` and `AI_GATEWAY_API_KEY` are Worker secrets set once per environment. |
 | Gate | AC1 is the first user-visible rung and is verified without a database (the Worker boots, the routes answer). AC2 and AC3 need a workspace with Supabase and Cloudflare connections to apply; they are verified by `plan`, `terraform validate` and the offline migration tests. |
-| Shipped as | |
+| Shipped as | `main` after [#5](https://github.com/sourceplane/ai-chatbot/pull/5); verified locally under `wrangler dev` with dummy secrets and no Postgres (the Worker boots, every route answers) |
 
 ## Read order
 
