@@ -1,5 +1,11 @@
 # ai-chatbot — design
 
+> AC5 (a baseline) changed parts of this design: Workers AI is the default
+> model provider, the session key is the database's own unless `AUTH_SECRET`
+> is set, `wrangler.jsonc` is committed, and every table has row-level
+> security. The passages it superseded are marked below and kept for the
+> history; `IMPLEMENTATION-STATUS.md` is the as-built record.
+
 ## 1. What the template is
 
 Next.js App Router (16, `cacheComponents`, React Compiler) + AI SDK 7. The
@@ -36,19 +42,20 @@ the `Geo` type), `@vercel/otel` + `@ai-sdk/otel` in `instrumentation.ts`,
 | BotID (`withBotId`, `checkBotId`, `initBotId`) | Removed; `lib/bot.ts` `checkBotId()` always returns `{ isBot: false }`, with the pointer to Cloudflare Bot Management / Turnstile. `instrumentation-client.ts` (which only initialised BotID) is gone |
 | `@vercel/otel` + `@ai-sdk/otel` in `instrumentation.ts` | An empty `register()`; the Worker's `observability.enabled` gives logs and traces. `streamText`'s `telemetry` option stays and is a no-op without a registered tracer |
 | `@vercel/analytics` | `components/cloudflare-web-analytics.tsx`, rendered in the root layout only when `NEXT_PUBLIC_CF_BEACON_TOKEN` is set at build time |
-| Vercel AI Gateway (`ai`'s `gateway` provider, `AI_GATEWAY_API_KEY`; OIDC on Vercel) | Unchanged — an HTTPS API; the key is a Worker secret. `baseURL` on the provider can point at Cloudflare AI Gateway's OpenAI-compatible endpoint instead, with no other change |
+| Vercel AI Gateway (`ai`'s `gateway` provider, `AI_GATEWAY_API_KEY`; OIDC on Vercel) | **Superseded by AC5.** Workers AI through the Worker's `AI` binding (`workers-ai-provider`) is the default: Kimi K2.6 (`@cf/moonshotai/kimi-k2.6`) for the chat and the artifact tools, GLM 4.7 Flash (`@cf/zai-org/glm-4.7-flash`, thinking off) for titles. Upstream's gateway models are offered only when the optional `AI_GATEWAY_API_KEY` Worker secret is set (`getAvailableModels`). *AC1–AC4: unchanged — an HTTPS API, its key a Worker secret.* |
 | Resumable streams + IP rate limit over Redis (`REDIS_URL`) | Off: no `REDIS_URL` is set. `consumeSseStream` returns before touching the stream context, `checkIpRateLimit` returns before touching Redis — both as upstream intends without Redis. The packages stay in the bundle, unused |
-| Project env vars in the dashboard (`AUTH_SECRET`, `AI_GATEWAY_API_KEY`) | Worker secrets: `.dev.vars` locally, `wrangler secret put` once per environment |
+| Project env vars in the dashboard (`AUTH_SECRET`, `AI_GATEWAY_API_KEY`) | Worker secrets: `.dev.vars` locally, `wrangler secret put` once per environment. **Since AC5 both are optional**: unset, the session key is the one migration `020_app_secrets` generated into `app_private.secrets` (`lib/auth-secret.ts`), and the chat runs on Workers AI only |
 | Deploy on push | Orun: `apps/web/component.yaml` (`cloudflare-workers-assets-turbo`) deploys `ai-chatbot-web-{stage,prod}` on merge to `main` once the product is linked, after the three roots and db-migrate |
 
 ## 3. The request flow
 
 ```
 browser ──► ai-chatbot-web-<env> (Worker)
-             ├─ proxy.ts: /ping → pong; no session → /api/auth/guest
+             ├─ proxy.ts: /ping → pong, /api/health → ok; no session → /api/auth/guest
              ├─ next-auth: credentials / guest ──► getDb() ──► HYPERDRIVE ──► Supabase Postgres
              ├─ POST /api/chat ──► getDb() (entitlement, chat, messages)
-             │                 └─► AI Gateway (HTTPS, AI_GATEWAY_API_KEY) ──► model
+             │                 ├─► AI binding (Workers AI) ──► model           (the default, since AC5)
+             │                 └─► AI Gateway (HTTPS, AI_GATEWAY_API_KEY) ──► model   (only with the key)
              ├─ POST /api/files/upload ──► BLOB.put(<uuid>/<name>) ──► R2
              └─ GET  /api/files/<uuid>/<name> ──► BLOB.get ──► stream (public by URL)
 ```
@@ -65,7 +72,9 @@ the guest sign-in and create a user per fetch).
 / `revalidateTag` / `unstable_cache`, and every page is dynamic behind
 `auth()`; what `next build` pre-renders is the static shells. The
 static-assets incremental cache serves those from the Worker's assets
-(`populateCache local` in the build script), the shape every port in the
+(`populateCache local` in the build script — since AC5, the same copy made
+by `scripts/populate-static-assets-cache.mjs`, which opens no platform
+proxy), the shape every port in the
 series uses when nothing revalidates. The composable cache that the
 static-assets cache does not support is not used.
 
@@ -73,7 +82,9 @@ The one caching hint left is `fetch(..., { next: { revalidate } })` in
 `lib/ai/models.ts` (the gateway's model-capability and availability
 lookups). On a read-only cache that data-cache write is a no-op, so those
 lookups go to the gateway on each call; `/api/models` still sets a day-long
-`Cache-Control` for the browser. A deployment that wants them cached swaps
+`Cache-Control` for the browser. (Since AC5 the Workers AI models declare
+their capabilities, so these lookups happen only for gateway models, offered
+only when `AI_GATEWAY_API_KEY` is set.) A deployment that wants them cached swaps
 `open-next.config.ts` to `r2IncrementalCache` on the same bucket (a second
 binding `NEXT_INC_CACHE_R2_BUCKET` on the `cloudflare-r2` wiring token, plus
 the `WORKER_SELF_REFERENCE` service binding named `ai-chatbot-web-<env>`);
@@ -84,27 +95,34 @@ the Orun lane, and first requests render on demand. Not taken here.
 
 ```
 infra/terraform/supabase ──apply──► orun secrets (project/<env> rung)
-   SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD, SUPABASE_DB_URL, SUPABASE_URL,
-   SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, WIRING_SUPABASE
+   SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD, SUPABASE_DB_URL
+   (Lumen's three outputs since AC5; the API keys and WIRING_SUPABASE are gone)
         │
         ├──► infra/terraform/cloudflare-hyperdrive (origin = the project's Postgres)
         │       ──apply──► WIRING_CLOUDFLARE_HYPERDRIVE {hyperdrive_id, hyperdrive_name}
         ├──► infra/db-migrate (plan|apply packages/db/src/migrations through the Management API)
         │
-infra/terraform/cloudflare-r2 ──apply──► WIRING_CLOUDFLARE_R2 {r2_bucket_name}
+infra/terraform/cloudflare-r2 ──apply──► WIRING_CLOUDFLARE_R2 {r2_bucket_name}   (its own r2-data key)
         │
 apps/web/component.yaml secretEnv ◄──────────┘
    WIRING_CLOUDFLARE_HYPERDRIVE_<ENV>, WIRING_CLOUDFLARE_R2_<ENV>
       → tooling/wire/live.mjs → wrangler.jsonc (hyperdrive id, r2 bucket_name)
-Worker secrets (per environment, by hand): AUTH_SECRET, AI_GATEWAY_API_KEY
+Worker secrets (per environment, by hand) — optional since AC5:
+   AUTH_SECRET (unset: the key 020_app_secrets generated in app_private.secrets)
+   AI_GATEWAY_API_KEY (unset: Workers AI only, through the AI binding)
 Build-time, optional: NEXT_PUBLIC_CF_BEACON_TOKEN
 ```
 
 `wrangler.template.jsonc` carries `@@wiring(cloudflare-hyperdrive/__ENV__:hyperdrive_id)@@`
-and `@@wiring(cloudflare-r2/__ENV__:r2_bucket_name)@@`. The verify lane (and
-`pnpm run wire:fixture`) renders it from `wiring.fixture.json`; the deploy
-lane renders it from the live documents for `$ORUN_ENVIRONMENT`. The
-rendered `wrangler.jsonc` is git-ignored. The Hyperdrive binding also names
+and `@@wiring(cloudflare-r2/__ENV__:r2_bucket_name)@@`. `pnpm run
+wire:fixture` renders it from `wiring.fixture.json`. ~~The verify lane renders
+it from the fixture, the deploy lane from the live documents; the rendered
+`wrangler.jsonc` is git-ignored.~~ **Superseded by AC5:** `wrangler.jsonc` is
+committed as the fixture render (with a GENERATED banner), so the lane's
+structure check finds it in a fresh checkout, and every lane re-renders it in
+its own job tree — stage and prod from that environment's wiring documents
+(refusing to build without them), dev from the fixture
+(`live.mjs --fixture-envs dev`). The Hyperdrive binding also names
 a `localConnectionString` (a Postgres on localhost) for `wrangler dev` and
 `next dev`.
 
@@ -115,13 +133,14 @@ apps/web                      the template (app/, components/, lib/, artifacts/,
   lib/db/queries.ts           getDb(): the per-call Hyperdrive client; every query as written
   lib/geo.ts, lib/bot.ts      the @vercel/functions and BotID stand-ins
   app/(chat)/api/files/       upload → R2; [...key] → serve from R2
-  component.yaml              render wrangler from the two wiring documents, build with turbo, deploy, smoke /ping
-  wrangler.template.jsonc     worker name, nodejs_compat, ASSETS, HYPERDRIVE (+ localConnectionString), BLOB
+  component.yaml              render wrangler from the two wiring documents, build with turbo, deploy, smoke /ping and /api/health
+  wrangler.template.jsonc     worker name, nodejs_compat, ASSETS, HYPERDRIVE (+ localConnectionString), BLOB, AI (since AC5)
+  wrangler.jsonc              the fixture render, committed (since AC5)
   wiring.fixture.json         offline values for the verify lane
   open-next.config.ts         static-assets incremental cache
-packages/db                   @saas/db: the control migration + 010_initial (the template's SQL), the runner
+packages/db                   @saas/db: the control migration + 010_initial (the template's SQL), 020_app_secrets and 030_row_level_security (AC5), the runner
 infra/db-migrate              applies packages/db/src/migrations per environment (depends on db, supabase)
-infra/terraform/supabase      the Supabase project per environment (Lumen's root + API keys)
+infra/terraform/supabase      the Supabase project per environment (Lumen's root; its API-key outputs dropped in AC5)
 infra/terraform/cloudflare-hyperdrive   the Hyperdrive config over that project's Postgres
 infra/terraform/cloudflare-r2           the attachments bucket per environment
 tests/web                     vitest: lib/utils, entitlements, the bot and geo shims, the two attachment routes (mocked session, mocked R2)
@@ -135,7 +154,10 @@ needs a running app with a database and a model key and is not run in CI.
 
 `next build` (Turbopack, standalone output traced from the monorepo root,
 `cacheComponents` and `reactCompiler` kept, the `experimental.*` flags
-kept) → `opennextjs-cloudflare build --skipBuild` → `populateCache local`.
+kept) → `opennextjs-cloudflare build --skipBuild` → `populateCache local`
+(since AC5, `scripts/populate-static-assets-cache.mjs`: the same copy,
+without opening the platform proxy, so a build needs no Cloudflare
+credential).
 Lint is the template's own `ultracite check` (Biome 2.5), wired as the
 package's `lint` script so `turbo run lint` runs it.
 
@@ -160,11 +182,15 @@ which is kept as written and untested.
   Worker (an HTTPS API), but leaves a Vercel dependency and a Vercel bill in
   a Cloudflare deployment; R2 behind the Worker's own route is a one-file
   change on each side.
-- **Workers AI as the model.** The template is gateway-shaped: model ids,
+- ~~**Workers AI as the model.** The template is gateway-shaped: model ids,
   `gatewayOrder`, the capabilities and availability lookups all speak the
   AI Gateway's API. Swapping the provider would change the model list and
   the UI; pointing the same provider at Cloudflare AI Gateway is the
-  no-code-change option a deployment can take.
+  no-code-change option a deployment can take.~~ **Reversed in AC5:**
+  Workers AI is the default. A product built unattended must chat with only
+  Cloudflare and Supabase connected, and the platform brokers no AI vendor
+  (risk AC-K). The gateway's models stay, as upstream lists them, offered
+  only when `AI_GATEWAY_API_KEY` is set.
 - **R2 incremental cache from the start.** Nothing revalidates and nothing
   is `"use cache"`; the only beneficiary would be the fetch data cache for
   the gateway's model lookups. The static-assets cache needs no extra

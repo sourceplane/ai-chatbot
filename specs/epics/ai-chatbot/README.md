@@ -8,15 +8,15 @@ The upstream code stays the code: `app/(chat)/api/chat/route.ts` with `streamTex
 
 | Field | Value |
 |-------|-------|
-| Status | 🔄 AC5 in review — AC0–AC4 landed (#1–#5); AC5 makes the repository an Orun baseline (one landing), Workers AI the default model provider, the session key the database's own and row-level security universal. The Supabase, Hyperdrive and R2 applies, db-migrate and a live deploy are gated on a linked workspace |
-| Cluster | **AC** (AC0–AC5) |
+| Status | ✅ AC0–AC5 shipped (#1–#6), tagged `baseline-v1`: AC5 made the repository an Orun baseline (one landing), Workers AI the default model provider, the session key the database's own and row-level security universal. AC6 (the cirrus standard, AC-7) on `main`, not yet tagged. The Supabase, Hyperdrive and R2 applies, db-migrate and a live deploy are not yet proven by a live bootstrap (risks AC-K, AC-L) |
+| Cluster | **AC** (AC0–AC6) |
 | Owner(s) | `apps/web` (the app) · `tests/web` (vitest) · `packages/db` + `tests/db` (the schema) · `infra/terraform/{supabase,cloudflare-hyperdrive,cloudflare-r2}` + `infra/db-migrate` |
 | Builds on | `lumen` conventions — the `supabase`, `cloudflare-hyperdrive` and `db-migrate` components, `@saas/db`, the orun-secrets wiring, the per-request `postgres` client; `cirrus-baseline` for the R2 root and the repository shape |
 | Upstream | [vercel/ai-chatbot](https://github.com/vercel/ai-chatbot) v3.1 (AI SDK 7, Next 16, next-auth v5 beta, Drizzle) |
 | Changes | Adds the Workers build, the monorepo wrapper, tests, the migrations package, the infra roots and the deploy contract; in the template's code: the per-call Postgres client, the R2 attachment routes, and shims for the Vercel-only modules (`lib/bot.ts`, `lib/geo.ts`, an empty `instrumentation.ts`) |
 | Decisions locked | (1) OpenNext on Workers + Static Assets, `next` pinned to 16.3.8. (2) Postgres through Hyperdrive, one `postgres` client per `getDb()` call, never at module scope. (3) Attachments in R2 behind `/api/files/<key>`, public by unguessable URL exactly as Vercel Blob's `access: "public"` was. (4) The schema ships in `packages/db` and is applied by db-migrate; drizzle-kit stays for local development. (5) Static-assets incremental cache: the app has no `use cache` and nothing revalidates. (6) No Redis: resumable streams and the IP rate limit stay off, as upstream does without `REDIS_URL`. (7) `AUTH_SECRET` and `AI_GATEWAY_API_KEY` are Worker secrets set once per environment — **superseded by AC5**: both are optional; Workers AI through the `AI` binding is the default model provider, and the session key defaults to one the database generates. |
 | Gate | AC1 is the first user-visible rung and is verified without a database (the Worker boots, the routes answer). AC2 and AC3 need a workspace with Supabase and Cloudflare connections to apply; they are verified by `plan`, `terraform validate` and the offline migration tests. |
-| Shipped as | `main` after [#5](https://github.com/sourceplane/ai-chatbot/pull/5); verified locally under `wrangler dev` with dummy secrets and no Postgres (the Worker boots, every route answers) |
+| Shipped as | `baseline-v1` ([#6](https://github.com/sourceplane/ai-chatbot/pull/6)), then AC6 on `main`; proven offline (Baseline CI: contract, leak, placement and the e2e tier), deploy gated until a workspace is linked |
 
 ## Read order
 
@@ -35,3 +35,4 @@ The upstream code stays the code: `app/(chat)/api/chat/route.ts` with `streamTex
 | AC3 — Supabase, Hyperdrive and R2 from Terraform | the three roots and the app's wiring from them | the roots validate; the wiring keys match the template's tokens |
 | AC4 — ready to instantiate | README, as-built status | a reader can run, test, preview and deploy it |
 | AC5 — a baseline | the card, the build document, `.baseline/`, the rebrand engine, the bootstrap helpers, `testing/`; Workers AI by default, the database's session key, RLS, the committed wrangler config, `/api/health`, the R2 root on its own `r2-data` key | Baseline CI green: contract, leak, placement (infra before app) and the e2e tier |
+| AC6 — the cirrus standard | no kiox, generated component docs, the context pack, status that agrees with the tags and the code | Baseline CI green with the docs check |
