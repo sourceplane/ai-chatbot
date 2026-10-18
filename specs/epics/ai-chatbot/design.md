@@ -51,7 +51,7 @@ the `Geo` type), `@vercel/otel` + `@ai-sdk/otel` in `instrumentation.ts`,
 
 ```
 browser ──► ai-chatbot-web-<env> (Worker)
-             ├─ proxy.ts: /ping → pong, /api/health → ok; no session → /api/auth/guest
+             ├─ proxy.ts: /ping → pong; /api/health passes without a session; no session → /api/auth/guest
              ├─ next-auth: credentials / guest ──► getDb() ──► HYPERDRIVE ──► Supabase Postgres
              ├─ POST /api/chat ──► getDb() (entitlement, chat, messages)
              │                 ├─► AI binding (Workers AI) ──► model           (the default, since AC5)
