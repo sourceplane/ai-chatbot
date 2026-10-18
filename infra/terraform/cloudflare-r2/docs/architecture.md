@@ -18,9 +18,9 @@ A `terraform` root at `infra/terraform/cloudflare-r2/terraform`.
 Written as job-output secrets on each environment after an apply; deploy
 lanes downstream resolve them by name.
 
-| Secret | Terraform output |
-|---|---|
-| `WIRING_CLOUDFLARE_R2` | `wiring` |
+| Secret                 | Terraform output |
+| ---------------------- | ---------------- |
+| `WIRING_CLOUDFLARE_R2` | `wiring`         |
 
 ## Resolved at run time (names only)
 
