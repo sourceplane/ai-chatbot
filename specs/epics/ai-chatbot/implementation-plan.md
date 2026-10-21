@@ -114,6 +114,11 @@ chatbot itself changing.
 - **Status that agrees with the tags and the code.** AC5 is shipped and
   tagged; `design.md` marks what AC5 superseded (Workers AI by default, the
   optional `AUTH_SECRET`, the committed `wrangler.jsonc`).
+- **The subdomain from the Cloudflare connection (AC-8).** The card declares
+  `subdomain` as `from: connection.cloudflare.workersSubdomain`, as
+  cirrus-baseline does since baseline-v23, so the console asks for nothing the
+  connection already knows; `testing/manifest.test.sh` requires the source's
+  provider in `spec.requires.integrations`.
 
 **Done when**
 - nothing outside this milestone's own record names kiox (`git grep -i
