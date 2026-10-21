@@ -30,6 +30,11 @@ capabilities, one for availability after nine seconds); the browser still
 caches `/api/models` for a day. The R2 incremental cache on the same bucket
 is the documented upgrade (design §4) if that cost matters.
 
+*Since AC5:* the Workers AI models declare their capabilities in
+`lib/ai/models.ts`, so a chat makes no capability lookups unless
+`AI_GATEWAY_API_KEY` is set and the gateway's models are offered; the cost
+above applies only to that deployment.
+
 ## AC-D — Resumable streams and the IP rate limit need Redis (ACCEPTED)
 
 Both are opt-in on `REDIS_URL` upstream and both degrade cleanly without

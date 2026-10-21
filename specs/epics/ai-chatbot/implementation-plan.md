@@ -62,7 +62,7 @@ the Worker secrets, attachments on R2, the model gateway),
 - the README quick start works from a fresh clone
 - the status file lists every PR and departure
 
-## AC5 — a baseline 🔄
+## AC5 — a baseline (AC-6) ✅
 
 The repository becomes an Orun baseline on the Lumen conventions, built the
 way cirrus-baseline v22 builds a product: in ONE landing. `blueprint.yaml`
@@ -95,6 +95,32 @@ What a fresh, unattended build forces on the app:
   signs a guest in, streams a chat answer through the (stand-in) AI binding,
   persists and lists it, round-trips an attachment through local R2,
   registers and signs a user in — and the Data API's roles read none of it
+
+## AC6 — the cirrus standard (AC-7) ✅
+
+Bring the baseline to cirrus-baseline's standard, with nothing about the
+chatbot itself changing.
+
+- **No kiox.** `kiox.yaml`/`kiox.lock` pinned an orun (v2.15.0) that nothing
+  ran: every workflow installs orun itself through `orun-action` with its own
+  `version:`. The files, their two modules and the rebrand's skip entry go.
+- **Component docs.** `tooling/catalog/gen-component-docs.py` writes each of
+  the eight components' `docs/overview.md`, `docs/architecture.md` and
+  `docs/runbook.md` from what the component declares, as cirrus-baseline's
+  do; the pages ship with the component. Baseline CI runs it with `--check`.
+- **The context pack.** `ai/context/current.md`, `decisions.md` and
+  `open-risks.md` beside the two pages a product ships with — this
+  repository's own, so no module places them.
+- **Status that agrees with the tags and the code.** AC5 is shipped and
+  tagged; `design.md` marks what AC5 superseded (Workers AI by default, the
+  optional `AUTH_SECRET`, the committed `wrangler.jsonc`).
+
+**Done when**
+- nothing outside this milestone's own record names kiox (`git grep -i
+  kiox`), and the leak gate and the offline bootstrap pass without the two
+  modules
+- the docs check is green in Baseline CI
+- this file, the status file and `epic.yaml` agree
 
 ## Sequencing note
 

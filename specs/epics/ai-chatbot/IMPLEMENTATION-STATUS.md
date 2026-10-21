@@ -15,7 +15,8 @@ the code departed from `design.md` or from the upstream template.
 | AC2 — the schema through db-migrate | ✅ Shipped (planned offline; apply gated on a linked workspace) | [#3](https://github.com/sourceplane/ai-chatbot/pull/3) |
 | AC3 — Supabase, Hyperdrive and R2 from Terraform | ✅ Shipped (validated; apply gated on a linked workspace) | [#4](https://github.com/sourceplane/ai-chatbot/pull/4) |
 | AC4 — ready to instantiate | ✅ Shipped | [#5](https://github.com/sourceplane/ai-chatbot/pull/5) |
-| AC5 — a baseline | 🔄 In review | this PR |
+| AC5 — a baseline | ✅ Shipped | [#6](https://github.com/sourceplane/ai-chatbot/pull/6) (AC-6), tagged `baseline-v1` |
+| AC6 — the cirrus standard | ✅ Shipped | AC-7 — on `main` after `baseline-v1`, not yet tagged |
 
 ## Departures from the upstream template (AC1–AC4)
 
@@ -134,6 +135,43 @@ guard (AC-M).
 - The R2 root applies with its own `r2-data` key (`CLOUDFLARE_R2_TOKEN`);
   the Supabase root publishes Lumen's three outputs only; every infra edge
   is enforced on main and advisory on pull requests; stack-tectonic 0.19.0.
+
+## The cirrus standard (AC6)
+
+Nothing about the chatbot changed. What changed is the baseline around it:
+
+| What | Before | After | Why |
+|---|---|---|---|
+| orun pin | `kiox.yaml` (v2.15.0) + `kiox.lock`, shipped to every product | gone; orun is pinned where it runs, the `orun-action` `version:` in each workflow | nothing ran the kiox pin, and it disagreed with the lanes (v2.78.4) |
+| `root-kiox`, `root-kiox-lock` modules | in `01-product` | removed (`testing/phases.test.sh` and the rebrand's skip list follow) | a product is placed with 294 files: 272 − 2 kiox + 24 docs pages |
+| component docs | none | `docs/overview.md`, `architecture.md`, `runbook.md` beside each of the eight `component.yaml` | cirrus-baseline documents every component; the workspace Docs library renders `docs/` beside each manifest |
+| how the docs stay true | — | `tooling/catalog/gen-component-docs.py` derives them from the manifest, the Worker config, Terraform, migrations and package scripts; Baseline CI runs it with `--check` | a hand-written copy of a manifest drifts silently |
+| context pack | `operations.md`, `deployment.md` | plus `current.md`, `decisions.md`, `open-risks.md` | cirrus-baseline's shape; the three new pages are this repository's own and no module places them (the leak gate still allows exactly two) |
+| status | AC5 "in review" | AC5 shipped and tagged `baseline-v1` | the tag existed; the documents had not caught up |
+| `design.md` | §2–§7 and §9 still described AC1–AC4: the gateway "unchanged", Workers AI a rejected alternative, `wrangler.jsonc` git-ignored, `AUTH_SECRET` and the gateway key set by hand, seven Supabase outputs | each superseded passage marked and the as-built fact beside it | the design contradicted the code AC5 shipped |
+
+## Verified (AC6)
+
+- `testing/{manifest,phases,coverage,rebrand,retouch,bootstrap-defer,wire}.test.sh`
+  green; `gen-component-docs.py --check` green (8 components, 24 pages).
+- `orun new --status` at v2.58.11: `01-product` 294 files, `02-docs`
+  hook-only.
+- `testing/leak.test.sh` at v2.58.11: 294 files derived (272 on `main`
+  before), 287 text files read; ai/context still exactly the two declared
+  pages; the generated pages name no factory path.
+- `testing/placement.test.sh` at v2.78.4 (the workflow's pin for it): 294
+  files placed, both landings, branded, re-tenanted; the product's own plan
+  orders supabase → cloudflare-hyperdrive → db-migrate → web and
+  cloudflare-r2 → web, enforced on main, advisory on a pull request;
+  `--resume` changes nothing.
+- `pnpm install --frozen-lockfile`, `wire:fixture` (the tree unchanged),
+  `typecheck`, `lint`, `test` (57 tests: 47 in `tests/web`, 10 in
+  `tests/db`), `build` green.
+- `testing/e2e.test.sh` at v2.78.4 green: the stage db-migrate and web lanes
+  in staged job trees, `wrangler dev` over a local Postgres, R2 and the
+  stand-in AI binding, a guest's chat streamed, titled and listed, an
+  attachment, a registration; `anon`/`authenticated` read nothing.
+- `orun task check AC-7` complete.
 
 ## Verified
 
