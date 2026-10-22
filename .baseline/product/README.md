@@ -157,6 +157,11 @@ own domain, attach the domain to the Worker in Cloudflare (Workers & Pages →
 under that environment's `env:` in `intent.yaml` — the Open Graph images are
 absolute links, built from it — and merge: the next deploy uses it.
 
+The repository names the domain in one more place, `BASE_DOMAIN` in
+`intent.yaml` (one line per environment), which the product was born with as
+the reserved placeholder `ai-chatbot.example.com`. Replace it with your
+domain in the same change.
+
 ## CI
 
 | Workflow | What it runs |

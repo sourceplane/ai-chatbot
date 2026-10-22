@@ -20,8 +20,9 @@ went live (`02-docs`).
 
 | | |
 |---|---|
-| Latest tag | `baseline-v2` (AC6 — the cirrus standard, [#7](https://github.com/sourceplane/ai-chatbot/pull/7) and [#8](https://github.com/sourceplane/ai-chatbot/pull/8): no kiox, generated component docs, this context pack, and the workers.dev subdomain read from the Cloudflare connection instead of asked) |
-| Before it | `baseline-v1` (AC5, [#6](https://github.com/sourceplane/ai-chatbot/pull/6)) |
+| Latest tag | `baseline-v3` (AC7 — the domain is set later, [#9](https://github.com/sourceplane/ai-chatbot/pull/9): the console asks for no domain, and a product is born with the placeholder `<reponame>.example.com` for an owner to replace) |
+| Before it | `baseline-v2` (AC6 — the cirrus standard, [#7](https://github.com/sourceplane/ai-chatbot/pull/7) and [#8](https://github.com/sourceplane/ai-chatbot/pull/8): no kiox, generated component docs, this context pack, and the workers.dev subdomain read from the Cloudflare connection instead of asked) |
+| Before that | `baseline-v1` (AC5, [#6](https://github.com/sourceplane/ai-chatbot/pull/6)) |
 | Proven live | No. Everything short of the platform is proven offline in Baseline CI: the e2e tier builds the product in orun's staged job tree, migrates a local Postgres with its own runner and serves the Worker over local R2 with a stand-in AI binding. No bootstrap from a tag has run against a workspace yet: the three applies, db-migrate against a real project, a real deploy, Workers AI itself (AC-K) and the `BLOB` binding under the deploy token (AC-L) are unproven |
 
 ## Where to read
@@ -36,7 +37,7 @@ went live (`02-docs`).
 
 ## Next
 
-1. Bootstrap one chatbot from `baseline-v2` against a workspace with
+1. Bootstrap one chatbot from `baseline-v3` against a workspace with
    Cloudflare and Supabase connected, and record its timings: the first
    proof of the applies, the deploy, Workers AI's models and tools (AC-K)
    and the R2 binding under the deploy token (AC-L).

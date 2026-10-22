@@ -17,6 +17,7 @@ the code departed from `design.md` or from the upstream template.
 | AC4 — ready to instantiate | ✅ Shipped | [#5](https://github.com/sourceplane/ai-chatbot/pull/5) |
 | AC5 — a baseline | ✅ Shipped | [#6](https://github.com/sourceplane/ai-chatbot/pull/6) (AC-6), tagged `baseline-v1` |
 | AC6 — the cirrus standard | ✅ Shipped | [#7](https://github.com/sourceplane/ai-chatbot/pull/7) (AC-7), [#8](https://github.com/sourceplane/ai-chatbot/pull/8) (AC-8), tagged `baseline-v2` |
+| AC7 — the domain is set later | ✅ Shipped | [#9](https://github.com/sourceplane/ai-chatbot/pull/9) (AC-9), tagged `baseline-v3` |
 
 ## Departures from the upstream template (AC1–AC4)
 
@@ -187,6 +188,52 @@ Verified:
   product's own plan orders supabase → cloudflare-hyperdrive → db-migrate →
   web and cloudflare-r2 → web; `--resume` changes nothing.
 - `orun task check AC-8` complete.
+
+## The domain is set later (AC7, AC-9)
+
+The console asked for the product's domain, with help text that said it did
+not need to exist — and nothing in the build needed one: the app answers on
+workers.dev from its first deploy, its public origin (`SITE_URL`, the Open
+Graph images' base) falls back to the environment's workers.dev URL until an
+owner sets it, the smoke and the phase probes read workers.dev, and the one
+place the repository names the domain is `BASE_DOMAIN` in `intent.yaml` (one
+line per environment: dev, stage, prod). A domain is an owner's step after
+the bootstrap (README, "Custom domain"), so the form no longer asks for it.
+
+- `blueprint.yaml` declares no `productdomain` input; the console asks for
+  the product's name alone.
+- `repo-blueprint.yaml`'s `productdomain` is optional, default empty. Nothing
+  else in the build reads it — no hook, probe or `when:` — so an empty value
+  is harmless; `.rebrand/values.json` records `""`. A hand-run build may still
+  pass `--set productdomain=` for a product that already has its domain.
+- `rebrand.mjs` no longer requires it. Empty, it brands the reserved
+  placeholder `<reponame>.example.com` (RFC 2606 — never someone else's
+  domain) where the domain goes, so setting it later is replacing one
+  string; the product README ("Custom domain", beside `SITE_URL`) and
+  `ai/context/operations.md` say so.
+- `testing/fixtures/acme.json` carries no domain, so the leak gate, the
+  offline bootstrap and the e2e tier exercise exactly what a console build
+  supplies; `testing/rebrand.test.sh` pins the placeholder for an absent and
+  an empty domain; `baseline.yml`'s blueprint read sets no domain.
+
+Nothing that needs a domain was removed — it waits for one.
+
+Verified:
+
+- `testing/{manifest,phases,coverage,rebrand,retouch,bootstrap-defer,wire}.test.sh`
+  green; `gen-component-docs.py --check` green (8 components).
+- At v2.58.11 (the blueprint job's pin): `orun new --status` with no
+  `productdomain` reads the document (`01-product` pending, 294 files);
+  `testing/leak.test.sh` 294 files derived, 287 text files read.
+- At v2.78.4 (the placement pin): `testing/placement.test.sh` 294 files
+  placed, both landings; the product's own plan orders supabase →
+  cloudflare-hyperdrive → db-migrate → web and cloudflare-r2 → web;
+  `--resume` changes nothing.
+- The offline bootstrap of the fixture leaves `.rebrand/values.json`
+  `productdomain` empty and `BASE_DOMAIN: acme-chatbot-hq.example.com` in all
+  three environments of the product's `intent.yaml` (and the same string in
+  its README and `operations.md`); no line names `ai-chatbot.example.com`.
+- `orun task check AC-9` complete.
 
 ## Verified (AC6)
 
