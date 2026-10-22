@@ -172,7 +172,7 @@ orun integrations list --org <ws> --json && orun cloud check --org <ws>
 | turn the AI Gateway on | `wrangler secret put AI_GATEWAY_API_KEY --name ai-chatbot-web-<env>` |
 | redeploy without a change | edit the last line of the component's `component.yaml` (`# orun: redeploy <reason> <stamp>`) and merge — it is a deploy trigger, nothing reads it |
 | rotate the session key | `wrangler secret put AUTH_SECRET --name ai-chatbot-web-<env>` (32+ random bytes); every session ends |
-| serve a custom domain | attach it to the Worker in Cloudflare (Workers & Pages → the Worker → Settings → Domains & Routes), then set `SITE_URL` under the environment's `env:` in `intent.yaml` (the Open Graph images' origin) and merge |
+| serve a custom domain | attach it to the Worker in Cloudflare (Workers & Pages → the Worker → Settings → Domains & Routes), then set `SITE_URL` under the environment's `env:` in `intent.yaml` (the Open Graph images' origin), replace the placeholder `ai-chatbot.example.com` in its `BASE_DOMAIN` with the domain, and merge |
 | headless credentials | `ORUN_TOKEN` (workspace-scoped) + `GITHUB_TOKEN` |
 
 The deployment record is the bootstrap's `02-docs` phase. Re-running it (the

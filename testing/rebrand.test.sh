@@ -82,6 +82,14 @@ check "the origin the build bakes into absolute metadata URLs: worker name and s
 check "the placeholder domain is the product's domain, not a renamed slug" \
   "$acme" intent.yaml '      BASE_DOMAIN: ai-chatbot.example.com' \
   '      BASE_DOMAIN: acme.dev'
+check "no domain given: the reserved placeholder, for an owner to replace later" \
+  '{"reponame":"acme-chat","productname":"Acme Chat","githuborg":"acme-inc","subdomain":"acme"}' \
+  intent.yaml '      BASE_DOMAIN: ai-chatbot.example.com' \
+  '      BASE_DOMAIN: acme-chat.example.com'
+check "an empty domain is no domain" \
+  '{"reponame":"acme-chat","productname":"Acme Chat","productdomain":""}' \
+  intent.yaml '      BASE_DOMAIN: ai-chatbot.example.com' \
+  '      BASE_DOMAIN: acme-chat.example.com'
 check "the repo slug" \
   "$acme" package.json '  "name": "ai-chatbot",' \
   '  "name": "acme-chat",'

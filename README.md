@@ -37,7 +37,7 @@ the milestones and the as-built status, including every departure.
 git clone --depth 1 --branch <baseline-tag> https://github.com/sourceplane/ai-chatbot
 cd ai-chatbot
 orun new --blueprint repo-blueprint.yaml --out ~/products/acme-chat --run-hooks --resume \
-  --set reponame=acme-chat --set productname="Acme Chat" --set productdomain=acme.dev \
+  --set reponame=acme-chat --set productname="Acme Chat" \
   --set githuborg=acme-inc --set subdomain=<workers-dev-subdomain>
 ```
 
