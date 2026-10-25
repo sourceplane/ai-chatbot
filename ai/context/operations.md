@@ -2,7 +2,7 @@
 
 This is the standing guide to how this product is deployed and operated.
 Instance facts (live URLs, workspace, which model provider serves, the
-secrets inventory) live in [deployment.md](deployment.md), rendered from
+secrets it uses) live in [deployment.md](deployment.md), rendered from
 probed reality by the bootstrap's `02-docs` phase; this file is the contract
 that stays true between deployments. It is written to give an agent with
 repository read access enough context to reason about and operate the product
@@ -38,7 +38,10 @@ desired-state repo. Eight components:
   `HYPERDRIVE` binding, one client per call (`lib/db/queries.ts`), stores
   attachments through its `BLOB` binding and runs models through its `AI`
   binding (`lib/ai/providers.ts`).
-- **`tests/web`**, **`tests/db`** — vitest suites, verified on the `dev` rung.
+- **`tests/web`**, **`tests/db`** — vitest suites. Their `dev` lanes install
+  and check the package's structure; the suites themselves, the type check
+  and the linters are `pnpm test`, `pnpm typecheck` and `pnpm lint`, run
+  before you push.
 
 Environments: **`stage`** and **`prod`** are deployed, each with its own
 Supabase project — two projects, which is what Supabase's free plan allows

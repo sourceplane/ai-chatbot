@@ -7,8 +7,8 @@
 // Not that command itself: before it copies anything it opens wrangler's
 // platform proxy over wrangler.jsonc, only to read string vars, and the AI
 // binding — Workers AI has no local simulator — makes the proxy open a
-// session to a Cloudflare account. A build must need no credential (Checks
-// has none, and a deploy lane's token is for the deploy). If
+// session to a Cloudflare account. A build must need no credential (a local
+// or test build has none, and a deploy lane's token is for the deploy). If
 // open-next.config.ts moves to another incremental cache (R2, KV), go back to
 // `opennextjs-cloudflare populateCache`: those are populated through the
 // platform, not by a copy.

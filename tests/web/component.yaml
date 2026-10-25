@@ -2,10 +2,19 @@ apiVersion: sourceplane.io/v1
 kind: Component
 metadata:
   name: web-tests
+  description: The chatbot's tests (the session key, the proxy and the guest sign-in, the models on Workers AI and the AI Gateway, attachments on R2, the health check, the committed wrangler config)
 spec:
   type: turbo-package
   lifecycle: production
   owner: platform
+  # Its pages, attached to it in the workspace's catalog: what the Docs
+  # library shows for it, and what the catalog's docs and runbook checks read.
+  # Generated from what this manifest and its sources declare.
+  docs:
+    overview: docs/overview.md
+    pages:
+      - { path: docs/architecture.md, role: architecture, title: Architecture }
+      - { path: docs/runbook.md, role: runbook, title: Runbook }
   domain: tests
   subscribe:
     environments:

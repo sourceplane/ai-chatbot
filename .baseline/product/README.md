@@ -15,7 +15,7 @@ environment and Orun's `db-migrate` applies the schema, all on every merge to
 
 <!-- 02-docs:begin -->
 Not recorded yet. The bootstrap's last phase writes the live URLs, the
-workspace, which model provider serves and the secrets inventory into
+workspace, which model provider serves and the secrets the product uses into
 [ai/context/deployment.md](ai/context/deployment.md); how the product deploys
 and how to operate it is in
 [ai/context/operations.md](ai/context/operations.md).
@@ -166,5 +166,4 @@ domain in the same change.
 
 | Workflow | What it runs |
 |---|---|
-| `checks.yml` | install, wire fixture (which must change nothing), typecheck, lint, test, build — every pull request (not pushes: on `main`, `ci.yml` must be the only run a commit has) |
-| `ci.yml` | the Orun pipeline: `orun plan --changed`, then one job per lane; applies, migrates and deploys stage → prod on merge |
+| `ci.yml` | the Orun pipeline, and the only workflow: `orun plan --changed`, then one job per lane. A pull request runs the verify lanes — the app built and dry-deployed for each environment, the three Terraform roots checked and planned, the migrations planned and their checksums verified — with nothing applied or deployed (typecheck, lint and the tests are `pnpm` scripts you run before you push, above); a merge applies, migrates and deploys stage → prod |
