@@ -93,7 +93,7 @@ for p in placed:
 if "README.md" not in placed:
     bad("README.md would not ship")
 MUST = (
-    ".github/workflows/ci.yml", ".github/workflows/checks.yml", ".rebrand/values.json",
+    ".github/workflows/ci.yml", ".rebrand/values.json",
     "apps/web/component.yaml", "apps/web/lib/site.ts", "apps/web/lib/auth-secret.ts",
     # The model provider: Workers AI through the AI binding, no key.
     "apps/web/lib/ai/providers.ts", "apps/web/lib/ai/models.ts",

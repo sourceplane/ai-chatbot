@@ -27,7 +27,7 @@ metadata:
     environment, db-migrate applies the schema, and CI deploys it all to stage
     and prod on merge, infra before app. Needs a Supabase organisation with
     room for two projects (stage and prod — the free plan's limit). Live in
-    about twenty minutes.
+    about eighteen minutes.
   tags: [ai, chatbot, workers-ai, supabase, cloudflare, nextjs]
 spec:
   source:
@@ -117,13 +117,14 @@ spec:
       from: connection.cloudflare.workersSubdomain
 
   # ── PREVIEW ONLY. repo-blueprint.yaml's `orun.integrations/reconcile@v1`
-  # hooks mint these, brokered, during 01-product. ─────────────────────────
-  # Transcribed from those hooks' own `keys:` and `template:` values, so
-  # testing/manifest.test.sh compares this list to the document that mints
-  # them. The console renders them read-only: no credential is ever typed,
-  # shown or stored. Keys that already exist are kept. Six keys, six scopes,
-  # on purpose — the deploy token deliberately cannot touch Hyperdrive or R2.
-  # No model key is here: Workers AI needs none.
+  # hooks mint these, brokered, during 01-product — one hook per provider. ─
+  # Transcribed from those hooks' own `provider:` and `secrets:` ({key,
+  # template}) values, in their order, so testing/manifest.test.sh compares
+  # this list to the document that mints them. The console renders them
+  # read-only: no credential is ever typed, shown or stored. Keys that
+  # already exist are kept. Six keys, six scopes, on purpose — the deploy
+  # token deliberately cannot touch Hyperdrive or R2. No model key is here:
+  # Workers AI needs none.
   secrets:
     - key: CLOUDFLARE_API_TOKEN
       provider: cloudflare
@@ -167,11 +168,11 @@ spec:
     # THE BUILD DOCUMENT. There is no umbrella workflow and no agent brief:
     # every phase is declared in it and orun runs it.
     blueprint: repo-blueprint.yaml
-    # Summed from the phases' expectedMinutes. An estimate until a bootstrap
-    # measures it: a Supabase project takes five to seven minutes to come up,
-    # and the app's deploy waits on it, on Hyperdrive, on the bucket and on
-    # the migrations.
-    expectedMinutes: 20
+    # Summed from the phases' expectedMinutes (17 + 1). An estimate until a
+    # bootstrap measures it: a Supabase project takes five to seven minutes to
+    # come up, and the app's deploy waits on it, on Hyperdrive, on the bucket
+    # and on the migrations.
+    expectedMinutes: 18
     tokenChannel: ORUN_TOKEN_FILE   # how a runner hands over its refreshed token
   verify:
     urls:

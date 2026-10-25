@@ -9,7 +9,7 @@ name: Baseline CI
 # builds, migrates, deploys (dry), serves, signs a guest in and streams a chat
 # answer through its AI binding with no model key and no AUTH_SECRET.
 #
-# ─── WHY THIS IS NOT IN ci.yml OR checks.yml ──────────────────────────────
+# ─── WHY THIS IS NOT IN ci.yml ────────────────────────────────────────────
 #
 # `repo-blueprint.yaml`'s `github-workflows` module copies the WHOLE `.github`
 # directory into every product built from this repository. These jobs run
@@ -71,21 +71,30 @@ jobs:
   # placed and finished by the blueprint's own hooks, then the product's own
   # `orun plan` for the 01-product merge — supabase, then
   # cloudflare-hyperdrive, then db-migrate, then web, with cloudflare-r2
-  # before web, enforced — under the product's lane pin, below, and a
-  # --resume that changes nothing).
+  # before web, enforced — and a --resume that changes nothing). The floor
+  # is v2.88.0 (the task set-up in the background, the landings checked in
+  # the box, the deploy credentials minted in one `secrets` reconcile per
+  # provider), newer than the product's lane pin (v2.78.4, ci.yml), so the
+  # product's own plans here read the per-edge `modeRules` as its CI does.
   blueprint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: sourceplane/orun-action@v1.2.0
         with:
-          version: v2.58.11
+          version: v2.88.0
       - uses: pnpm/action-setup@v4
         with:
           version: 10.12.1
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # This job installs nothing either: with no lockfile hook the offline
+          # bootstrap never runs pnpm, so there is no store, and the pnpm cache
+          # setup-node v5 turns on by itself (package.json names a packageManager)
+          # fails the job saving a path that does not exist whenever no earlier
+          # cache exists for the lockfile.
+          package-manager-cache: false
       - name: repo-blueprint.yaml, read by the pinned CLI
         run: |
           set -euo pipefail
@@ -101,23 +110,28 @@ jobs:
       - name: the leak gate — what a product carries
         run: bash testing/leak.test.sh
       # The placement tier ENDS with the product's own `orun plan` — what the
-      # product's ci.yml runs — so it runs under the product's lane pin, not
-      # the bootstrap floor. v2.58.11 plans a pull request with every infra
-      # edge enforced: it does not apply a dependsOn edge's `modeRules`. The
-      # lane pin does (advisory on a PR, enforced on main), and the test
-      # checks the PR's advisory edges only under an orun at least that pin.
-      # Its placements are valid under either.
+      # product's ci.yml runs — so it needs an orun at the product's lane pin
+      # or newer: one older than v2.78.4 plans a pull request with every infra
+      # edge enforced, because it does not apply a dependsOn edge's
+      # `modeRules` (advisory on a PR, enforced on main), and the test checks
+      # the PR's advisory edges only under an orun at least that pin. The
+      # offline bootstrap before it reads the blueprint, which takes the
+      # bootstrap floor (v2.88.0: the task set-up in the background, the
+      # landings checked in the box), so this tier runs the floor, which is
+      # newer than the lane pin.
       - uses: sourceplane/orun-action@v1.2.0
         with:
-          version: v2.78.4
+          version: v2.88.0
       - name: placement — the offline bootstrap, and the product's own plan
         run: |
           git config --global user.email ci@example.invalid
           git config --global user.name "baseline ci"
           bash testing/placement.test.sh
 
-  # Tier 2. THE PRODUCT IT PRODUCES WORKS: the 01-product landing under the
-  # checks its pull request waits on; the migrations applied by the product's
+  # Tier 2. THE PRODUCT IT PRODUCES WORKS: the 01-product landing installed,
+  # its fixture rendered, type-checked, linted, tested and built (its own pull
+  # request runs `plan` alone, and the landing is checked in the box with
+  # `orun validate` and `orun plan`); the migrations applied by the product's
   # own runner to a local Postgres (through a stand-in for the one Supabase
   # Management API endpoint it calls); the stage lane's own structure check,
   # build, output check and dry deploy in the job tree orun stages; and the
@@ -125,16 +139,17 @@ jobs:
   # and no AUTH_SECRET — its smoke, every route, a guest sign-in, a chat
   # streamed through the AI binding (a deterministic stand-in: Workers AI
   # cannot be called offline), the history, an attachment, a registration.
-  # Pinned at the product's lane version, because that is the orun its CI
-  # runs. The runner image carries PostgreSQL 16 (not started); the test
-  # starts its own on a random port.
+  # Pinned at the bootstrap floor (v2.88.0): the offline bootstrap reads the
+  # blueprint, and the floor is newer than the product's lane pin (v2.78.4),
+  # which is all the lane steps need. The runner image carries PostgreSQL 16
+  # (not started); the test starts its own on a random port.
   product:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: sourceplane/orun-action@v1.2.0
         with:
-          version: v2.78.4
+          version: v2.88.0
       - uses: pnpm/action-setup@v4
         with:
           version: 10.12.1

@@ -65,7 +65,8 @@ const nextConfig: NextConfig = {
 // reaches it remotely: `wrangler login` first) — through
 // getCloudflareContext(). In the dev server ONLY: the AI binding makes
 // wrangler open a remote session, and a build must need no Cloudflare
-// credential (Checks has none; a deploy lane's token is for the deploy).
+// credential (a local or test build has none; a deploy lane's token is for
+// the deploy).
 // Upstream wrapped the config in `withBotId` (Vercel BotID); see lib/bot.ts.
 export default function config(phase: string): NextConfig {
   if (phase === PHASE_DEVELOPMENT_SERVER) {
