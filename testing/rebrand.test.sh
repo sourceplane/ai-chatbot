@@ -148,6 +148,15 @@ check "a name containing the baseline's name survives three passes" \
   "$contains" apps/web/lib/site.ts 'export const SITE_NAME = "Chatbot";' \
   'export const SITE_NAME = "Chatbot 2";' 3
 
+# A product that keeps the baseline's own name. The guard holds every bare
+# `ai-chatbot`, so a secret-ref rule run after it never saw the ref and the
+# product shipped `secret://ai-chatbot/ai-chatbot/…` — the repo as its
+# workspace, refused on every resolve (vijayakrishnans/ai-chatbot).
+same='{"reponame":"ai-chatbot","productname":"Ai Chatbot","orunWorkspace":"org_269510fca1b34bdd82e5ebf19edcaea3"}'
+check "a product named like the baseline still gets its workspace in secret refs" \
+  "$same" infra/terraform/cloudflare-r2/component.yaml '    CLOUDFLARE_ACCOUNT_ID: "secret://ai-chatbot/ai-chatbot/{{ .environment }}/CLOUDFLARE_ACCOUNT_ID"' \
+  '    CLOUDFLARE_ACCOUNT_ID: "secret://org_269510fca1b34bdd82e5ebf19edcaea3/ai-chatbot/{{ .environment }}/CLOUDFLARE_ACCOUNT_ID"' 3
+
 # --verify runs after every rebrand. Without the product's values it cannot
 # tell the product's own identity from a leftover; with them it can. A real
 # leftover must fail it either way.

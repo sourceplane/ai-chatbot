@@ -293,6 +293,21 @@ function literalPairs() {
   ];
 }
 
+// Secret refs: `secret://<workspace>/<project>/…`. The workspace segment is
+// ANY segment — a ws_… id or a slug. This rule runs BEFORE the guard, not
+// among the regex pairs: when the product keeps the baseline's own name
+// (reponame === baseline.slug), the guard holds every bare `<reponame>`,
+// including both halves of `secret://<slug>/<slug>/`, and a rule run after it
+// never sees the ref — the product shipped refs naming the repo as its
+// workspace, and every secret resolve was refused. It must also precede the
+// repo-slug pass, which would otherwise rewrite only the project half.
+// Re-running it over its own output writes the same ref, so it needs no guard.
+const SECRET_REF_RULE = {
+  re: new RegExp(`\\bsecret://[A-Za-z0-9_-]+/${rx(baseline.slug)}/`, "g"),
+  replacement: () => `secret://${orunWorkspaceSlug}/${reponame}/`,
+  label: "secret ref workspace/project",
+};
+
 function regexPairs(files) {
   const list = [
     // The display-name seam (apps/web/lib/site.ts). JSON.stringify writes a
@@ -302,14 +317,6 @@ function regexPairs(files) {
       re: new RegExp(`SITE_NAME = "${rx(baseline.productName)}"`, "g"),
       replacement: () => `SITE_NAME = ${JSON.stringify(productname)}`,
       label: "site name seam",
-    },
-    // Secret refs: `secret://<workspace>/<project>/…`. MUST precede the
-    // repo-slug pass, which would otherwise rewrite only the project half. The
-    // workspace segment is ANY segment — a ws_… id or a slug.
-    {
-      re: new RegExp(`\\bsecret://[A-Za-z0-9_-]+/${rx(baseline.slug)}/`, "g"),
-      replacement: () => `secret://${orunWorkspaceSlug}/${reponame}/`,
-      label: "secret ref workspace/project",
     },
   ];
 
@@ -446,6 +453,12 @@ for (const file of files) {
       masks.push([token, m]);
       return token;
     });
+  });
+
+  text = text.replace(SECRET_REF_RULE.re, (m) => {
+    const to = SECRET_REF_RULE.replacement();
+    if (to !== m) count(SECRET_REF_RULE.label);
+    return hold(to);
   });
 
   // What a previous pass already wrote stays as written.
