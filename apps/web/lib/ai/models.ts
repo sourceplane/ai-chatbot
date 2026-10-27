@@ -3,8 +3,9 @@
 // Workers AI, through the Worker's own `AI` binding (wrangler.jsonc): it needs
 // no key, so a fresh deployment chats with nothing configured. The gateway's
 // models — upstream's list, unchanged — are offered only when
-// AI_GATEWAY_API_KEY is set (a Worker secret), and the picker shows exactly
-// what is available (`getAvailableModels`), never a model that would fail.
+// AI_GATEWAY_API_KEY is set (a Worker secret), Hugging Face's only when
+// HF_TOKEN is, and the picker shows exactly what is available
+// (`getAvailableModels`), never a model that would fail.
 export const DEFAULT_CHAT_MODEL = "@cf/moonshotai/kimi-k2.6";
 
 export type ModelCapabilities = {
@@ -18,10 +19,11 @@ export type ChatModel = {
   name: string;
   provider: string;
   description: string;
-  // `workers-ai`: the AI binding; `gateway`: the AI Gateway (needs its key).
-  via?: "workers-ai" | "gateway";
-  // Workers AI models' capabilities are known here; the gateway's are looked
-  // up from the gateway (getCapabilities).
+  // `workers-ai`: the AI binding; `gateway`: the AI Gateway (needs its key);
+  // `huggingface`: Hugging Face's Inference Providers router (needs HF_TOKEN).
+  via?: "workers-ai" | "gateway" | "huggingface";
+  // Workers AI and Hugging Face models' capabilities are known here; the
+  // gateway's are looked up from the gateway (getCapabilities).
   capabilities?: ModelCapabilities;
   gatewayOrder?: string[];
   reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
@@ -105,8 +107,51 @@ export const gatewayModels: ChatModel[] = [
   },
 ];
 
+// Open models on Hugging Face's Inference Providers router, each one served
+// with tool calling by at least two providers (router.huggingface.co/v1/models).
+// The router picks the provider; the id is the model's Hub id. Offered only
+// with HF_TOKEN set.
+export const huggingFaceModels: ChatModel[] = [
+  {
+    capabilities: { reasoning: true, tools: true, vision: false },
+    description: "Moonshot AI's Kimi K3 on Hugging Face — tools, reasoning",
+    id: "moonshotai/Kimi-K3",
+    name: "Kimi K3",
+    provider: "huggingface",
+    via: "huggingface",
+  },
+  {
+    capabilities: { reasoning: true, tools: true, vision: false },
+    description: "Z.ai's GLM 5.3 on Hugging Face — tools, reasoning",
+    id: "zai-org/GLM-5.3",
+    name: "GLM 5.3",
+    provider: "huggingface",
+    via: "huggingface",
+  },
+  {
+    capabilities: { reasoning: true, tools: true, vision: false },
+    description: "Fast DeepSeek on Hugging Face — tools, reasoning",
+    id: "deepseek-ai/DeepSeek-V4.1-Flash",
+    name: "DeepSeek V4.1 Flash",
+    provider: "huggingface",
+    via: "huggingface",
+  },
+  {
+    capabilities: { reasoning: true, tools: true, vision: false },
+    description: "Compact Qwen on Hugging Face — tools, reasoning",
+    id: "Qwen/Qwen3.8-27B",
+    name: "Qwen3.8 27B",
+    provider: "huggingface",
+    via: "huggingface",
+  },
+];
+
 // Every model this app knows, in picker order.
-export const chatModels: ChatModel[] = [...workersAiModels, ...gatewayModels];
+export const chatModels: ChatModel[] = [
+  ...workersAiModels,
+  ...huggingFaceModels,
+  ...gatewayModels,
+];
 
 // Whether the AI Gateway is configured. OpenNext copies the Worker's
 // secrets and vars into process.env per request, so this is read at call
@@ -115,10 +160,22 @@ export function isGatewayConfigured(): boolean {
   return Boolean(process.env.AI_GATEWAY_API_KEY);
 }
 
+// Whether Hugging Face is configured: HF_TOKEN, a Hugging Face access token
+// with the "Make calls to Inference Providers" permission, as a Worker secret.
+// Read at call time, like the gateway's key.
+export function isHuggingFaceConfigured(): boolean {
+  return Boolean(process.env.HF_TOKEN);
+}
+
 // What a request may use: Workers AI always (the binding is in the committed
-// wrangler config), the gateway's models only with its key.
+// wrangler config), Hugging Face's and the gateway's models only with their
+// keys.
 export function getAvailableModels(): ChatModel[] {
-  return isGatewayConfigured() ? chatModels : workersAiModels;
+  return [
+    ...workersAiModels,
+    ...(isHuggingFaceConfigured() ? huggingFaceModels : []),
+    ...(isGatewayConfigured() ? gatewayModels : []),
+  ];
 }
 
 export function isAvailableModel(modelId: string): boolean {
@@ -127,6 +184,10 @@ export function isAvailableModel(modelId: string): boolean {
 
 export function isWorkersAiModel(modelId: string): boolean {
   return workersAiModels.some((m) => m.id === modelId);
+}
+
+export function isHuggingFaceModel(modelId: string): boolean {
+  return huggingFaceModels.some((m) => m.id === modelId);
 }
 
 export async function getCapabilities(): Promise<
@@ -269,8 +330,9 @@ export async function getModelAvailability(
 ): Promise<ModelAvailability> {
   const model = chatModels.find((item) => item.id === modelId);
 
-  // Workers AI reports no per-model health the way the gateway does.
-  if (!model || model.via === "workers-ai") {
+  // Workers AI and Hugging Face report no per-model health the way the
+  // gateway does.
+  if (!model || model.via === "workers-ai" || model.via === "huggingface") {
     return "unknown";
   }
 

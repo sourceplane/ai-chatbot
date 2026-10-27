@@ -16,6 +16,11 @@
 # The Vercel AI Gateway: adds upstream's gateway models to the picker.
 # AI_GATEWAY_API_KEY=
 
+# Hugging Face's Inference Providers: adds open models (Kimi K3, GLM 5.3,
+# DeepSeek, Qwen) to the picker. A token with "Make calls to Inference
+# Providers" (https://huggingface.co/settings/tokens).
+# HF_TOKEN=
+
 # Redis: resumable streams and the per-IP rate limit.
 # REDIS_URL=
 

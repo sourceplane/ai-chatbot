@@ -42,10 +42,10 @@
   "ai": {
     "binding": "AI"
   }
-  // AUTH_SECRET and AI_GATEWAY_API_KEY are optional Worker secrets, never
-  // vars (`wrangler secret put`, README). Without AUTH_SECRET the session key
-  // is the one the database generated (lib/auth-secret.ts); without the
-  // gateway key only the Workers AI models are offered. REDIS_URL is absent
+  // AUTH_SECRET, AI_GATEWAY_API_KEY and HF_TOKEN are optional Worker secrets,
+  // never vars (`wrangler secret put`, README). Without AUTH_SECRET the session
+  // key is the one the database generated (lib/auth-secret.ts); without the
+  // gateway key or HF_TOKEN only the Workers AI models are offered. REDIS_URL is absent
   // too: without it the chat skips resumable streams and the Redis IP rate
   // limit, as upstream does, and the per-user hourly limit still applies.
 }

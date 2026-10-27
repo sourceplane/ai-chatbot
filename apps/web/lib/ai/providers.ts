@@ -1,3 +1,4 @@
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { customProvider, gateway, type LanguageModel } from "ai";
 import { createWorkersAI } from "workers-ai-provider";
@@ -5,6 +6,7 @@ import { isTestEnvironment } from "../constants";
 import {
   DEFAULT_CHAT_MODEL,
   isAvailableModel,
+  isHuggingFaceModel,
   isWorkersAiModel,
   titleModel,
 } from "./models";
@@ -37,8 +39,19 @@ function workersAi() {
   return createWorkersAI({ binding: env.AI });
 }
 
-// A model id the request may not use — a gateway model with no gateway key,
-// or one nobody lists — falls back to the default Workers AI model rather
+// Hugging Face's Inference Providers router: OpenAI-compatible chat
+// completions, HF_TOKEN as the bearer. Built per call, like the binding — the
+// secret reaches process.env per request (lib/ai/models.ts).
+function huggingFace() {
+  return createOpenAICompatible({
+    apiKey: process.env.HF_TOKEN,
+    baseURL: "https://router.huggingface.co/v1",
+    name: "huggingface",
+  });
+}
+
+// A model id the request may not use — a gateway or Hugging Face model with
+// no key, or one nobody lists — falls back to the default Workers AI model rather
 // than failing the chat (lib/ai/models.ts, getAvailableModels).
 export function resolveModelId(modelId: string): string {
   return isAvailableModel(modelId) ? modelId : DEFAULT_CHAT_MODEL;
@@ -52,6 +65,9 @@ export function getLanguageModel(modelId: string): LanguageModel {
   const id = resolveModelId(modelId);
   if (isWorkersAiModel(id)) {
     return workersAi()(id);
+  }
+  if (isHuggingFaceModel(id)) {
+    return huggingFace()(id);
   }
   return gateway.languageModel(id);
 }

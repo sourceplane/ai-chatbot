@@ -134,6 +134,20 @@ model. A model that fails says so in the chat (Workers AI's own message);
 the writing-suggestions tool needs structured output, and a model that
 cannot give it answers that the suggestions could not be made.
 
+To add Hugging Face's open models (Kimi K3, GLM 5.3, DeepSeek V4.1 Flash,
+Qwen3.8 27B), create a Hugging Face token with the "Make calls to Inference
+Providers" permission (https://huggingface.co/settings/tokens) and set it per
+environment:
+
+```bash
+wrangler secret put HF_TOKEN --name ai-chatbot-web-stage
+wrangler secret put HF_TOKEN --name ai-chatbot-web-prod
+```
+
+They run on Hugging Face's Inference Providers router, billed to the token's
+Hugging Face account, and the picker lists them from the next request on —
+the same rules as the gateway's key. `/api/health` reports both keys.
+
 ## Other optional secrets
 
 - **`AUTH_SECRET`.** The session cookie needs no secret from you: unless you

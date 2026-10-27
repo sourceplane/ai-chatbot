@@ -1,6 +1,10 @@
 import { sql } from "drizzle-orm";
 import { connection } from "next/server";
-import { DEFAULT_CHAT_MODEL, isGatewayConfigured } from "@/lib/ai/models";
+import {
+  DEFAULT_CHAT_MODEL,
+  isGatewayConfigured,
+  isHuggingFaceConfigured,
+} from "@/lib/ai/models";
 import { getDb } from "@/lib/db/queries";
 
 // Not upstream's: the deploy's smoke check and the bootstrap's probes read
@@ -30,6 +34,9 @@ export async function GET() {
         models: {
           default: DEFAULT_CHAT_MODEL,
           gateway: isGatewayConfigured() ? "connected" : "not connected",
+          huggingface: isHuggingFaceConfigured()
+            ? "connected"
+            : "not connected",
           provider: "workers-ai",
         },
         ok,
