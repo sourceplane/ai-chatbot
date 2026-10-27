@@ -110,6 +110,14 @@ in the repository or in GitHub.
 Each environment has its own Supabase project: two, which is what
 Supabase's free plan allows per organisation.
 
+**Deploy by hand.** Orunbase's **Deploy** button on a component, or **Run
+workflow** on the CI workflow in GitHub's Actions tab (on `main`), runs
+`ci.yml` for the environment and components you pick, and each one deploys
+exactly as a merge would deploy it. Leave the component blank to redeploy
+every component in that environment, with nothing changed: after rotating a
+secret, say. A component with nothing to run in that environment (a test
+suite in `prod`) is left out with a notice.
+
 ## Models
 
 The chat, the chat titles and the artifact tools run on **Workers AI**
