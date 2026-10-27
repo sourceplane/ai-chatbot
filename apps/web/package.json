@@ -22,6 +22,7 @@
     "wire:fixture": "node ../../tooling/wire/render.mjs --template wrangler.template.jsonc --out wrangler.jsonc --map wiring.fixture.json --env stage"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "3.0.5",
     "@ai-sdk/provider": "4.0.2",
     "@ai-sdk/react": "4.0.16",
     "@codemirror/lang-python": "^6.2.1",

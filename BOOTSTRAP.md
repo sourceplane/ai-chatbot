@@ -168,7 +168,14 @@ orun new --blueprint repo-blueprint.yaml \
   wrangler secret put AI_GATEWAY_API_KEY --name <reponame>-web-<env>
   ```
 
-  Without it the picker offers only the Workers AI models. The product's
+  Hugging Face's open models are the same with `HF_TOKEN` (a token with
+  "Make calls to Inference Providers"):
+
+  ```bash
+  wrangler secret put HF_TOKEN --name <reponame>-web-<env>
+  ```
+
+  Without either the picker offers only the Workers AI models. The product's
   README, "Models", is the owner's copy of this.
 - **The session key** needs nothing: the database generated one per
   environment when the migrations first ran. `AUTH_SECRET` as a Worker secret

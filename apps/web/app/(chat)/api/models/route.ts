@@ -7,8 +7,8 @@ import {
 } from "@/lib/ai/models";
 
 // What the model picker shows: `available` is exactly what this deployment
-// can run — the Workers AI models always, the AI Gateway's only when its key
-// is set — and `capabilities` says what each supports. In the demo mode
+// can run — the Workers AI models always, Hugging Face's and the AI Gateway's
+// only when their keys are set — and `capabilities` says what each supports. In the demo mode
 // upstream ships (IS_DEMO=1, with a gateway key), `models` adds the
 // gateway's whole catalogue, shown locked.
 export async function GET() {

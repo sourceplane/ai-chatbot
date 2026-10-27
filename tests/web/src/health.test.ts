@@ -22,6 +22,7 @@ describe("GET /api/health", () => {
     vi.resetModules();
     execute.mockReset();
     delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.HF_TOKEN;
   });
 
   it("is ok when the database is reachable and migrated, and names the model provider", async () => {
@@ -30,7 +31,12 @@ describe("GET /api/health", () => {
     expect(status).toBe(200);
     expect(body).toEqual({
       database: "reachable",
-      models: { default: "@cf/moonshotai/kimi-k2.6", gateway: "not connected", provider: "workers-ai" },
+      models: {
+        default: "@cf/moonshotai/kimi-k2.6",
+        gateway: "not connected",
+        huggingface: "not connected",
+        provider: "workers-ai",
+      },
       ok: true,
       schema: "migrated",
     });
