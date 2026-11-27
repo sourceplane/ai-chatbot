@@ -13,8 +13,11 @@
 # (migration 020_app_secrets; lib/auth-secret.ts).
 # AUTH_SECRET=
 
-# The Vercel AI Gateway: adds upstream's gateway models to the picker.
-# AI_GATEWAY_API_KEY=
+# Cloudflare AI Gateway: the name of a gateway on this account (`default` is
+# the one every account has) adds other providers' models to the picker,
+# billed to the account's AI Gateway credits. The gateway needs authentication
+# turned on.
+# AI_GATEWAY_ID=
 
 # Hugging Face's Inference Providers: adds open models (Kimi K3, GLM 5.3,
 # DeepSeek, Qwen) to the picker. A token with "Make calls to Inference

@@ -56,7 +56,7 @@ stage_url="https://${brand}-web-stage.${sub}.workers.dev"
 prod_url="https://${brand}-web-prod.${sub}.workers.dev"
 
 # Which model provider serves: /api/health names the default Workers AI
-# model and whether the AI Gateway's key is set (a yes/no, never the key).
+# model and whether an AI Gateway is named (a yes/no, never the name).
 # Read only from an answer that is 200: anything else says nothing about it.
 models_state() {
   local page code
@@ -127,9 +127,9 @@ environment is verify-only by design — no deployed URL.
 | prod | ${models_prod} |
 
 The chat runs on Workers AI through the Worker's own \`AI\` binding — no key.
-The AI Gateway is not a provider the platform brokers: its key is an optional
-Worker secret the owner adds per environment (README, "Models"), which adds
-the gateway's models to the picker.
+Other providers' models run through Cloudflare AI Gateway on the same binding,
+billed to the account's AI Gateway credits: the owner names the gateway per
+environment (README, "Models"), which adds its models to the picker.
 
 ## Secrets (names only)
 
@@ -146,7 +146,7 @@ the gateway's models to the picker.
 | \`WIRING_CLOUDFLARE_R2\` | \`${repo}\` on stage and on prod | written by the R2 root's apply: the bucket's name, not a credential |
 
 Brokered secrets are minted per run, so no long-lived value is at rest. The
-optional keys (\`AI_GATEWAY_API_KEY\`, \`REDIS_URL\`, \`AUTH_SECRET\`) are Worker
+optional settings (\`AI_GATEWAY_ID\`, \`REDIS_URL\`, \`AUTH_SECRET\`) are Worker
 secrets the owner adds, not workspace secrets (above). What the workspace
 holds right now (every secret by name, and its integrations and their
 health) is on the console's Secrets and Integrations pages for \`${ws}\`.

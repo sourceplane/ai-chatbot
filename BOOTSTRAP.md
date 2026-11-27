@@ -54,8 +54,8 @@ and deploys the app, infra before app, then a short docs landing.
   repos), unless the credential can write links. `01-product`'s `link` step
   stops and names the fix if it is not.
 - **No AI vendor key.** No platform brokers one: the chat runs on Workers AI,
-  and the Vercel AI Gateway's models are an optional key the owner adds
-  afterwards (§3).
+  and other providers' models through Cloudflare AI Gateway are an optional
+  setting the owner adds afterwards (§3).
 - **A known platform risk (R2).** The R2 bucket is applied with its own
   `r2-data` key, but the Worker's `BLOB` binding is attached by the deploy,
   which runs with the `workers-deploy` token (Workers Scripts and KV).
@@ -161,11 +161,13 @@ orun new --blueprint repo-blueprint.yaml \
 
 - **The models** need nothing: the chat, the titles and the artifact tools
   run on Workers AI through the Worker's `AI` binding, billed to the
-  Cloudflare account. To add the Vercel AI Gateway's models (upstream's
-  list), set its key per environment:
+  Cloudflare account. To add other providers' models through Cloudflare AI
+  Gateway (load AI Gateway credits and turn on the gateway's authentication
+  first), name the gateway per environment — `default` is the one every
+  account has:
 
   ```bash
-  wrangler secret put AI_GATEWAY_API_KEY --name <reponame>-web-<env>
+  wrangler secret put AI_GATEWAY_ID --name <reponame>-web-<env>
   ```
 
   Hugging Face's open models are the same with `HF_TOKEN` (a token with

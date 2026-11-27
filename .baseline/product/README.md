@@ -27,7 +27,7 @@ and how to operate it is in
 |---|---|
 | The product's name | `apps/web/lib/site.ts` |
 | The chat, auth, artifacts, tools, components and hooks | `apps/web/app`, `apps/web/components`, `apps/web/artifacts`, `apps/web/lib`, `apps/web/hooks` |
-| The models: Workers AI by default, the AI Gateway when its key is set | `apps/web/lib/ai/models.ts`, `apps/web/lib/ai/providers.ts` |
+| The models: Workers AI by default, Cloudflare AI Gateway when `AI_GATEWAY_ID` is set | `apps/web/lib/ai/models.ts`, `apps/web/lib/ai/providers.ts` |
 | Postgres through Hyperdrive (`getDb()`), the schema for drizzle-kit | `apps/web/lib/db/queries.ts`, `apps/web/lib/db/schema.ts`, `apps/web/lib/db/migrations` |
 | The session key (AUTH_SECRET, or the database's own) | `apps/web/lib/auth-secret.ts`, `apps/web/app/(auth)`, `apps/web/proxy.ts` |
 | Attachments on R2 (upload, serve) | `apps/web/app/(chat)/api/files/upload`, `apps/web/app/(chat)/api/files/[...key]` |
@@ -127,18 +127,27 @@ allocation. The picker offers Kimi K2.6 (the default: tools, vision,
 reasoning) and GLM 4.7 Flash (fast; also the title model); both are listed in
 `apps/web/lib/ai/models.ts`.
 
-To add upstream's **Vercel AI Gateway** models (DeepSeek, Kimi K2.5, GPT OSS,
-Grok), set the gateway's key per environment:
+To add other providers' models (GPT-5.4 mini, Grok 4.3, DeepSeek V4 Pro)
+through **Cloudflare AI Gateway**, on the same `AI` binding:
+
+1. In the Cloudflare dashboard, under AI → AI Gateway, load credits (Unified
+   Billing) and turn on **authentication** for the gateway you will use. Every
+   account has one named `default`.
+2. Name that gateway per environment:
 
 ```bash
-wrangler secret put AI_GATEWAY_API_KEY --name ai-chatbot-web-stage
-wrangler secret put AI_GATEWAY_API_KEY --name ai-chatbot-web-prod
+wrangler secret put AI_GATEWAY_ID --name ai-chatbot-web-stage
+wrangler secret put AI_GATEWAY_ID --name ai-chatbot-web-prod
 ```
 
-Worker secrets survive every later deploy; the next request sees them, and
-the picker lists the gateway's models from then on. Without the key they are
-not offered, and a request naming one is answered by the default Workers AI
-model. A model that fails says so in the chat (Workers AI's own message);
+The value is the gateway's name (`default`), not a key: no provider key
+reaches the Worker, and the models are billed to the account's AI Gateway
+credits. It is stored as a Worker secret because secrets survive every later
+deploy; the next request sees it, and the picker lists the gateway's models
+from then on. Without it they are not offered, and a request naming one is
+answered by the default Workers AI model. If the gateway cannot bill a
+request (no credits, or authentication off), the chat says so and links to
+the gateway's page. A model that fails says so in the chat (Workers AI's own message);
 the writing-suggestions tool needs structured output, and a model that
 cannot give it answers that the suggestions could not be made.
 
@@ -154,7 +163,7 @@ wrangler secret put HF_TOKEN --name ai-chatbot-web-prod
 
 They run on Hugging Face's Inference Providers router, billed to the token's
 Hugging Face account, and the picker lists them from the next request on —
-the same rules as the gateway's key. `/api/health` reports both keys.
+the same rules as the gateway's id. `/api/health` reports both.
 
 ## Other optional secrets
 

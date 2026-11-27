@@ -89,6 +89,18 @@ returns its error to the model instead of failing the response. Workers AI
 model capabilities are declared rather than fetched, so a chat no longer
 makes five capability lookups to the gateway (AC-C).
 
+**Since superseded for the gateway's models.** They no longer go to Vercel's
+AI Gateway. `gatewayModels` is now three models from Cloudflare's AI Gateway
+catalogue (`openai/gpt-5.4-mini`, `xai/grok-4.3`, `deepseek/deepseek-v4-pro`),
+run by the same `workers-ai-provider` on the same `AI` binding
+(`env.AI.run(id, inputs, { gateway })`) and billed to the account's AI
+Gateway credits. They are offered only when `AI_GATEWAY_ID` names the gateway
+(`AI_GATEWAY_API_KEY` is gone); their capabilities are declared, so nothing
+is fetched; upstream's per-model health lookup and its demo catalogue, which
+only Vercel's gateway served, are removed; and a request the gateway cannot
+bill opens a dialog that links to the gateway's page. Not exercised against a
+live gateway: unit tests cover the routing through the binding.
+
 ### Dev-server bindings only in the dev server; no `populateCache`
 
 `initOpenNextCloudflareForDev()` runs only for `next dev` (the config is a

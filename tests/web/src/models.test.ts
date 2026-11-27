@@ -2,8 +2,8 @@ import { generateText, streamText } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The model provider (lib/ai/models.ts, lib/ai/providers.ts). Workers AI,
-// through the Worker's AI binding, is the default and needs no key; the AI
-// Gateway's models are offered only with AI_GATEWAY_API_KEY. The binding is a
+// through the Worker's AI binding, is the default and needs no key; Cloudflare
+// AI Gateway's models, on the same binding, are offered only with AI_GATEWAY_ID. The binding is a
 // stand-in here — it records what it was asked and answers the way Workers
 // AI's binding does: a JSON body, or a server-sent-event stream when the
 // inputs ask for `stream: true`.
@@ -28,27 +28,27 @@ function sse(chunks: string[]): ReadableStream<Uint8Array> {
 describe("the models a deployment offers (lib/ai/models.ts)", () => {
   beforeEach(() => {
     vi.resetModules();
-    delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.AI_GATEWAY_ID;
     delete process.env.HF_TOKEN;
   });
   afterEach(() => {
-    delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.AI_GATEWAY_ID;
     delete process.env.HF_TOKEN;
   });
 
-  it("offers only Workers AI with no gateway key, the default among them", async () => {
+  it("offers only Workers AI with no gateway named, the default among them", async () => {
     const models = await import("@/lib/ai/models");
     const ids = models.getAvailableModels().map((m) => m.id);
     expect(ids.every((id) => id.startsWith("@cf/"))).toBe(true);
     expect(ids).toContain(models.DEFAULT_CHAT_MODEL);
-    expect(models.isAvailableModel("moonshotai/kimi-k2.5")).toBe(false);
+    expect(models.isAvailableModel("openai/gpt-5.4-mini")).toBe(false);
   });
 
-  it("adds the gateway's models once its key is set", async () => {
-    process.env.AI_GATEWAY_API_KEY = "a-key";
+  it("adds the gateway's models once a gateway is named", async () => {
+    process.env.AI_GATEWAY_ID = "default";
     const models = await import("@/lib/ai/models");
     const ids = models.getAvailableModels().map((m) => m.id);
-    expect(ids).toEqual(expect.arrayContaining(["@cf/moonshotai/kimi-k2.6", "moonshotai/kimi-k2.5"]));
+    expect(ids).toEqual(expect.arrayContaining(["@cf/moonshotai/kimi-k2.6", "openai/gpt-5.4-mini"]));
   });
 
   it("adds Hugging Face's models once HF_TOKEN is set, and only then", async () => {
@@ -59,7 +59,7 @@ describe("the models a deployment offers (lib/ai/models.ts)", () => {
     models = await import("@/lib/ai/models");
     const ids = models.getAvailableModels().map((m) => m.id);
     expect(ids).toEqual(expect.arrayContaining(["@cf/moonshotai/kimi-k2.6", "moonshotai/Kimi-K3", "zai-org/GLM-5.3"]));
-    expect(ids).not.toContain("moonshotai/kimi-k2.5");
+    expect(ids).not.toContain("openai/gpt-5.4-mini");
   });
 
   it("knows each Hugging Face model's capabilities without a network call", async () => {
@@ -89,7 +89,7 @@ describe("the provider (lib/ai/providers.ts)", () => {
   beforeEach(() => {
     vi.resetModules();
     run.mockReset();
-    delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.AI_GATEWAY_ID;
     delete process.env.HF_TOKEN;
   });
   afterEach(() => {
@@ -97,13 +97,44 @@ describe("the provider (lib/ai/providers.ts)", () => {
     delete process.env.HF_TOKEN;
   });
 
-  it("answers a gateway model with no key by the default Workers AI model", async () => {
+  it("answers a gateway model with no gateway named by the default Workers AI model", async () => {
     const { resolveModelId } = await import("@/lib/ai/providers");
     const { DEFAULT_CHAT_MODEL } = await import("@/lib/ai/models");
-    expect(resolveModelId("xai/grok-4.1-fast-non-reasoning")).toBe(DEFAULT_CHAT_MODEL);
+    expect(resolveModelId("xai/grok-4.3")).toBe(DEFAULT_CHAT_MODEL);
     expect(resolveModelId("@cf/zai-org/glm-4.7-flash")).toBe("@cf/zai-org/glm-4.7-flash");
-    process.env.AI_GATEWAY_API_KEY = "a-key";
-    expect(resolveModelId("xai/grok-4.1-fast-non-reasoning")).toBe("xai/grok-4.1-fast-non-reasoning");
+    process.env.AI_GATEWAY_ID = "default";
+    expect(resolveModelId("xai/grok-4.3")).toBe("xai/grok-4.3");
+  });
+
+  it("runs a gateway model on the AI binding, through the named gateway", async () => {
+    process.env.AI_GATEWAY_ID = "my-gateway";
+    run.mockResolvedValue({
+      choices: [{ finish_reason: "stop", index: 0, message: { content: "Hello from the gateway", role: "assistant" } }],
+      usage: { completion_tokens: 4, prompt_tokens: 1, total_tokens: 5 },
+    });
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const { getLanguageModel } = await import("@/lib/ai/providers");
+    const { text } = await generateText({ model: getLanguageModel("openai/gpt-5.4-mini"), prompt: "hi" });
+    expect(text).toBe("Hello from the gateway");
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run.mock.calls[0]![0]).toBe("openai/gpt-5.4-mini");
+    expect(run.mock.calls[0]![2]).toMatchObject({ gateway: { id: "my-gateway" } });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+    delete process.env.AI_GATEWAY_ID;
+  });
+
+  it("knows each gateway model's capabilities without a network call", async () => {
+    process.env.AI_GATEWAY_ID = "default";
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const models = await import("@/lib/ai/models");
+    const caps = await models.getCapabilities();
+    for (const m of models.gatewayModels) {
+      expect(caps[m.id]).toEqual(m.capabilities);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+    delete process.env.AI_GATEWAY_ID;
   });
 
   it("answers a Hugging Face model with no token by the default Workers AI model", async () => {

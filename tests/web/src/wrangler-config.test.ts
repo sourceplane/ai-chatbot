@@ -79,7 +79,7 @@ describe("apps/web wrangler config", () => {
     expect(committed).toMatch(/"binding":\s*"HYPERDRIVE"/);
     expect(committed).toMatch(/"binding":\s*"BLOB"/);
     expect(committed).not.toMatch(/"vars"/);
-    expect(committed).not.toMatch(/AI_GATEWAY_API_KEY"\s*:/);
+    expect(committed).not.toMatch(/AI_GATEWAY_ID"\s*:/);
   });
 
   it("keeps every resource id and bucket in the template a wiring token", () => {

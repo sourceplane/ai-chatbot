@@ -1,10 +1,11 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { customProvider, gateway, type LanguageModel } from "ai";
+import { customProvider, type LanguageModel } from "ai";
 import { createWorkersAI } from "workers-ai-provider";
 import { isTestEnvironment } from "../constants";
 import {
   DEFAULT_CHAT_MODEL,
+  getGatewayId,
   isAvailableModel,
   isHuggingFaceModel,
   isWorkersAiModel,
@@ -39,6 +40,24 @@ function workersAi() {
   return createWorkersAI({ binding: env.AI });
 }
 
+// Another provider's model, through Cloudflare AI Gateway on the same `AI`
+// binding: `workers-ai-provider` runs a catalogue id (`openai/gpt-5.4-mini`)
+// as `env.AI.run(id, inputs, { gateway })`, and the gateway holds the
+// credential — Unified Billing against the account's credits, or a key stored
+// on the gateway. No provider key reaches this Worker.
+function aiGateway() {
+  const { env } = getCloudflareContext();
+  if (!env.AI) {
+    throw new Error(
+      'The AI binding is missing: wrangler.jsonc must declare `"ai": { "binding": "AI" }`'
+    );
+  }
+  return createWorkersAI({
+    binding: env.AI,
+    gateway: { id: getGatewayId() ?? "default" },
+  });
+}
+
 // Hugging Face's Inference Providers router: OpenAI-compatible chat
 // completions, HF_TOKEN as the bearer. Built per call, like the binding — the
 // secret reaches process.env per request (lib/ai/models.ts).
@@ -51,7 +70,7 @@ function huggingFace() {
 }
 
 // A model id the request may not use — a gateway or Hugging Face model with
-// no key, or one nobody lists — falls back to the default Workers AI model rather
+// nothing configured, or one nobody lists — falls back to the default Workers AI model rather
 // than failing the chat (lib/ai/models.ts, getAvailableModels).
 export function resolveModelId(modelId: string): string {
   return isAvailableModel(modelId) ? modelId : DEFAULT_CHAT_MODEL;
@@ -69,7 +88,7 @@ export function getLanguageModel(modelId: string): LanguageModel {
   if (isHuggingFaceModel(id)) {
     return huggingFace()(id);
   }
-  return gateway.languageModel(id);
+  return aiGateway()(id);
 }
 
 export function getTitleModel(): LanguageModel {

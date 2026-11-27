@@ -21,8 +21,9 @@ from the `HYPERDRIVE` binding, one per call; attachments go to the `BLOB` R2
 binding and are served back at `/api/files/<key>`; the Vercel-only modules —
 Blob, BotID, `@vercel/functions`, `@vercel/otel`, `@vercel/analytics` — are
 each replaced by their Cloudflare counterpart or a no-op; the models default
-to Workers AI (so a fresh product chats with no model key, and the AI
-Gateway's models appear only once its key is set); and the session key
+to Workers AI (so a fresh product chats with no model key, and other
+providers' models, through Cloudflare AI Gateway, appear only once the owner
+names a gateway); and the session key
 defaults to one the database generates for itself (so no secret has to be
 set by hand). What the baseline adds is everything needed to make a copy of
 it somebody else's — built the way
@@ -62,8 +63,8 @@ roots, the migrations, the tests, its CI, its tooling, a README of its own
 and its operating contract — renamed throughout to the product's name,
 repository, Worker, Supabase project, Hyperdrive config and bucket. None of
 this repository's machinery ships. **No AI vendor key is asked for**: the
-platform brokers none, and the chat runs on Workers AI; the AI Gateway's key
-is the owner's to add afterwards (the product's README, "Models"). The
+platform brokers none, and the chat runs on Workers AI; Cloudflare AI Gateway
+is the owner's to turn on afterwards (the product's README, "Models"). The
 Supabase organisation the build uses needs room for **two projects**, stage
 and prod — the free plan's limit.
 
@@ -85,7 +86,7 @@ and prod — the free plan's limit.
 |---|---|
 | The product's name | `apps/web/lib/site.ts` |
 | The chat, auth, artifacts, tools, components and hooks | `apps/web/app`, `apps/web/components`, `apps/web/artifacts`, `apps/web/lib`, `apps/web/hooks` |
-| The models (Workers AI by default; the AI Gateway when its key is set) | `apps/web/lib/ai/models.ts`, `apps/web/lib/ai/providers.ts` |
+| The models (Workers AI by default; Cloudflare AI Gateway when `AI_GATEWAY_ID` is set) | `apps/web/lib/ai/models.ts`, `apps/web/lib/ai/providers.ts` |
 | Postgres through Hyperdrive (`getDb()`), the schema for drizzle-kit | `apps/web/lib/db/queries.ts`, `apps/web/lib/db/schema.ts`, `apps/web/lib/db/migrations` |
 | The session key: AUTH_SECRET, or the one the database generated | `apps/web/lib/auth-secret.ts` |
 | Attachments on R2 (upload, serve) | `apps/web/app/(chat)/api/files/upload`, `apps/web/app/(chat)/api/files/[...key]` |
@@ -126,7 +127,7 @@ carries.
 | BotID | Removed; `lib/bot.ts` never flags a request — use Cloudflare Bot Management or Turnstile at the edge |
 | `@vercel/otel` + `@ai-sdk/otel` | Workers observability (`observability.enabled` in wrangler); `instrumentation.ts` registers nothing |
 | `@vercel/analytics` | Cloudflare Web Analytics beacon (`NEXT_PUBLIC_CF_BEACON_TOKEN` at build time; unset renders nothing) |
-| Vercel AI Gateway (OIDC on Vercel) for every model call | Workers AI through the `AI` binding by default (`workers-ai-provider`); the gateway's models only with `AI_GATEWAY_API_KEY` as a Worker secret |
+| Vercel AI Gateway (OIDC on Vercel) for every model call | Workers AI through the `AI` binding by default (`workers-ai-provider`); other providers' models through Cloudflare AI Gateway on the same binding, only with `AI_GATEWAY_ID` set (Unified Billing; no provider key) |
 | `AUTH_SECRET` set by the owner | Optional: unset, the session key is the one the environment's database generated (`app_private.secrets`) |
 | Redis resumable streams + IP rate limit (`REDIS_URL`) | Off without `REDIS_URL`, as upstream; per-user entitlements still apply |
 | A database created by hand | `infra/terraform/supabase` + `infra/terraform/cloudflare-hyperdrive` + `infra/terraform/cloudflare-r2`, ids and credentials as orun secrets |

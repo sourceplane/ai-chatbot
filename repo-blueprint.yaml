@@ -597,8 +597,8 @@ phases:
         #   SUPABASE_ACCESS_TOKEN        supabase's provider, db-migrate's runner
         #   SUPABASE_ORG_ID              supabase (TF_VAR_supabaseOrgId)
         # No model key is minted: the chat runs on Workers AI through the
-        # Worker's own AI binding, which needs none. The AI Gateway's key is
-        # optional and no connection brokers it (its README, "Models").
+        # Worker's own AI binding, which needs none. Cloudflare AI Gateway
+        # is optional and runs on that binding too (its README, "Models").
         - id: secrets-cloudflare
           uses: orun.integrations/reconcile@v1
           with:
