@@ -50,7 +50,7 @@ spec:
     outcome:
       - Live on stage and prod, guests chatting on Workers AI
       - A Supabase project and an R2 bucket per environment, migrated on merge
-      - Other models through the AI Gateway when you add its key
+      - Other providers' models through Cloudflare AI Gateway when you turn it on
 
   requires:
     # GitHub arrives as the App installation plus the repo link; Cloudflare

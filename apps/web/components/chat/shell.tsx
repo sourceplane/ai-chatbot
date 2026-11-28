@@ -17,6 +17,7 @@ import {
   useArtifact,
   useArtifactSelector,
 } from "@/hooks/use-artifact";
+import { GATEWAY_DASHBOARD_URL } from "@/lib/errors";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Artifact } from "./artifact";
@@ -103,10 +104,7 @@ export function ChatShell() {
   }, [editingMessage, input, regenerate, setInput, setMessages]);
 
   const handleActivateGateway = useCallback(() => {
-    window.open(
-      "https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card",
-      "_blank"
-    );
+    window.open(GATEWAY_DASHBOARD_URL, "_blank");
     window.location.href = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/`;
   }, []);
 
@@ -196,17 +194,18 @@ export function ChatShell() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Activate AI Gateway</AlertDialogTitle>
+            <AlertDialogTitle>Set up AI Gateway billing</AlertDialogTitle>
             <AlertDialogDescription>
               This application requires{" "}
               {process.env.NODE_ENV === "production" ? "the owner" : "you"} to
-              activate Vercel AI Gateway.
+              add Cloudflare AI Gateway credits and turn on the gateway&apos;s
+              authentication.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleActivateGateway}>
-              Activate
+              Open AI Gateway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

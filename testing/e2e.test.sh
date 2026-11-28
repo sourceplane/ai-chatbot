@@ -452,7 +452,7 @@ s, _, body = req("/api/models", cookies=guest_jar)
 models = json.loads(body) if s == 200 else {}
 ids = [m["id"] for m in models.get("available") or []]
 if s != 200 or not ids or not all(i.startswith("@cf/") for i in ids) or "@cf/moonshotai/kimi-k2.6" not in ids:
-    bad(f"/api/models answered {s} with {ids} — without a gateway key only Workers AI's models are available")
+    bad(f"/api/models answered {s} with {ids} — with no gateway named only Workers AI's models are available")
 
 # ── an attachment, into R2 and back ───────────────────────────────────────
 def chunk(kind, data):
@@ -509,12 +509,12 @@ if titles != ["Canned title from glm-4.7-flash"]:
 if not any(e.get("type") == "finish" for e in events):
     bad("the chat stream never finished")
 
-# A gateway model, asked for with no gateway key: answered by the default
+# A gateway model, asked for with no gateway named: answered by the default
 # Workers AI model, never failed.
 s, _, _, answer2 = chat(chat_id, "And again, with a model this deployment does not have.",
-                        "xai/grok-4.1-fast-non-reasoning")
+                        "xai/grok-4.3")
 if s != 200 or not answer2.startswith("Canned answer from @cf/moonshotai/kimi-k2.6"):
-    bad(f"a gateway model without its key answered {s} {answer2!r}, not the default Workers AI model")
+    bad(f"a gateway model with no gateway named answered {s} {answer2!r}, not the default Workers AI model")
 
 # ── persisted, and listed in the history ──────────────────────────────────
 for _ in range(20):

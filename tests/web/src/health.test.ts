@@ -21,7 +21,7 @@ describe("GET /api/health", () => {
   beforeEach(() => {
     vi.resetModules();
     execute.mockReset();
-    delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.AI_GATEWAY_ID;
     delete process.env.HF_TOKEN;
   });
 

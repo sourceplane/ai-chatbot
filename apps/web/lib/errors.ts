@@ -89,7 +89,7 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return "The request couldn't be processed. Please check your input and try again.";
 
     case "bad_request:activate_gateway":
-      return "AI Gateway requires a valid credit card on file to service requests. Please visit https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card to add a card and unlock your free credits.";
+      return GATEWAY_BILLING_MESSAGE;
 
     case "unauthorized:auth":
       return "You need to sign in before continuing.";
@@ -138,4 +138,25 @@ function getStatusCodeByType(type: ErrorType) {
     default:
       return 500;
   }
+}
+
+// Cloudflare AI Gateway bills other providers' models to the account's
+// credits (Unified Billing). When it cannot — no credits, or the gateway's
+// authentication is off — it answers with one of these (AI Gateway's
+// troubleshooting reference, errors 2049, 2052 and 2021), and the chat tells
+// the visitor what the owner has to do instead of "Oops".
+export const GATEWAY_DASHBOARD_URL =
+  "https://dash.cloudflare.com/?to=/:account/ai/ai-gateway";
+
+export const GATEWAY_BILLING_MESSAGE = `Cloudflare AI Gateway could not bill this request. The owner needs AI Gateway credits, and authentication turned on for the gateway: ${GATEWAY_DASHBOARD_URL}`;
+
+export function isGatewayBillingError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /unified billing|insufficient balance/i.test(error.message ?? "")
+  );
+}
+
+export function isGatewayBillingMessage(message: string | undefined): boolean {
+  return Boolean(message?.includes("Cloudflare AI Gateway could not bill"));
 }

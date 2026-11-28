@@ -117,8 +117,8 @@ must have room for both before `01-product` runs (BOOTSTRAP.md).
 The platform brokers no AI vendor, so nothing here mints, asks for or waits
 on a model key. The chatbot's models are Workers AI, reached through the
 Worker's own `AI` binding on the Cloudflare account the build already
-deploys to: a fresh product chats with nothing else configured. The Vercel
-AI Gateway's models are optional — the owner adds `AI_GATEWAY_API_KEY` as a
+deploys to: a fresh product chats with nothing else configured. Cloudflare
+AI Gateway's models are optional — the owner adds `AI_GATEWAY_ID` as a
 Worker secret afterwards (the product's README, "Models"), and re-running
 `02-docs` records it.
 

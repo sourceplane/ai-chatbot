@@ -38,7 +38,11 @@ import {
   updateMessage,
 } from "@/lib/db/queries";
 import type { DBMessage } from "@/lib/db/schema";
-import { ChatbotError } from "@/lib/errors";
+import {
+  ChatbotError,
+  GATEWAY_BILLING_MESSAGE,
+  isGatewayBillingError,
+} from "@/lib/errors";
 import { geolocation, ipAddress } from "@/lib/geo";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import type { ChatMessage, WaitingStatusData } from "@/lib/types";
@@ -93,8 +97,8 @@ export async function POST(request: Request) {
       return new ChatbotError("unauthorized:chat").toResponse();
     }
 
-    // Only a model this deployment can run: a gateway model without the
-    // gateway's key falls back to the default Workers AI model.
+    // Only a model this deployment can run: a gateway model with no gateway
+    // configured falls back to the default Workers AI model.
     const chatModel = resolveModelId(selectedChatModel);
 
     await checkIpRateLimit(ipAddress(request));
@@ -293,14 +297,6 @@ export async function POST(request: Request) {
           onError() {
             stopWaitingStatus();
           },
-          providerOptions: {
-            ...(modelConfig?.gatewayOrder && {
-              gateway: { order: modelConfig.gatewayOrder },
-            }),
-            ...(modelConfig?.reasoningEffort && {
-              openai: { reasoningEffort: modelConfig.reasoningEffort },
-            }),
-          },
           stopWhen: isStepCount(5),
           telemetry: {
             functionId: "stream-text",
@@ -388,13 +384,8 @@ export async function POST(request: Request) {
         }
       },
       onError: (error) => {
-        if (
-          error instanceof Error &&
-          error.message?.includes(
-            "AI Gateway requires a valid credit card on file to service requests"
-          )
-        ) {
-          return "AI Gateway requires a valid credit card on file to service requests. Please visit https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card to add a card and unlock your free credits.";
+        if (isGatewayBillingError(error)) {
+          return GATEWAY_BILLING_MESSAGE;
         }
         // Workers AI's own error (a model it no longer serves, a quota, a
         // binding that is not there) is shown as it is, in the chat, rather
@@ -429,22 +420,17 @@ export async function POST(request: Request) {
       stream,
     });
   } catch (error) {
-    const vercelId = request.headers.get("x-vercel-id");
+    const rayId = request.headers.get("cf-ray");
 
     if (error instanceof ChatbotError) {
       return error.toResponse();
     }
 
-    if (
-      error instanceof Error &&
-      error.message?.includes(
-        "AI Gateway requires a valid credit card on file to service requests"
-      )
-    ) {
+    if (isGatewayBillingError(error)) {
       return new ChatbotError("bad_request:activate_gateway").toResponse();
     }
 
-    console.error("Unhandled error in chat API:", error, { vercelId });
+    console.error("Unhandled error in chat API:", error, { rayId });
     return new ChatbotError("offline:chat").toResponse();
   }
 }

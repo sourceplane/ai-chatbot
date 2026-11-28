@@ -801,7 +801,7 @@ function PureModelSelectorCompact({
   const capabilities: Record<string, ModelCapabilities> | undefined =
     modelsData?.capabilities ?? modelsData;
   // What this deployment can run (app/(chat)/api/models): Workers AI's models
-  // always, the AI Gateway's only when its key is set. Until the answer
+  // always, the AI Gateway's only when AI_GATEWAY_ID is set. Until the answer
   // arrives, the Workers AI models, which every deployment has.
   const availableModels: ChatModel[] = modelsData?.available ?? workersAiModels;
   const dynamicModels: ChatModel[] | undefined = modelsData?.models;

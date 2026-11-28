@@ -7,8 +7,9 @@ A chatbot from Vercel's [Next.js AI Chatbot](https://github.com/vercel/ai-chatbo
   with the template's tools — the weather, and artifacts (text, code,
   spreadsheets) the model creates, edits and suggests changes to
 - Models on Workers AI through the Worker's `AI` binding by default
-  (`lib/ai/models.ts`, `lib/ai/providers.ts`); the Vercel AI Gateway's models
-  are offered only when `AI_GATEWAY_API_KEY` is set
+  (`lib/ai/models.ts`, `lib/ai/providers.ts`); other providers' models, through
+  Cloudflare AI Gateway on the same binding, are offered only when
+  `AI_GATEWAY_ID` is set
 - Auth.js (next-auth v5) with credentials and a guest flow: every page signs a
   visitor without a session in as a guest (`proxy.ts`, `app/(auth)`)
 - Chat history, votes, documents and suggestions in Postgres through Drizzle

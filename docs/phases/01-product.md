@@ -85,7 +85,7 @@ runs beside it; `task` is the first that waits for it.
    the binding is reachable and migrated.
 
 No model key is in it: the models are Workers AI through the Worker's `AI`
-binding. The AI Gateway's models turn on when the owner adds its key (the
+binding. Cloudflare AI Gateway's models turn on when the owner names a gateway (the
 product's README, "Models").
 
 **An open platform risk.** The deploy step binds the bucket with the
